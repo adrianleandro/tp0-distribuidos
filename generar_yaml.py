@@ -26,7 +26,7 @@ NETWORK_TEST_NAME = 'testing_net'
 
 SERVER_NAME = 'server'
 SERVER_IMG = 'server:latest'
-SERVER_ENTRYPOINT = 'python3/main.py'
+SERVER_ENTRYPOINT = 'python3 /main.py'
 SERVER_NET = [
     NETWORK_TEST_NAME
 ]
