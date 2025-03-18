@@ -10,18 +10,45 @@ PROJECT_NAME = 'tp0'
 DRIVER_TYPE = 'default'
 SUBNET_ADDR = '172.25.125.0/24'
 
+NETWORK_TEST_NAME = 'testing_net'
+
 SERVER_NAME = 'server'
 SERVER_IMG = 'server:latest'
 SERVER_ENTRYPOINT = 'python3/main.py'
+SERVER_NET = [
+    NETWORK_TEST_NAME
+]
 SERVER_ENV = [
     'PYTHONUNBUFFERED=1',
     'LOGGING_LEVEL=DEBUG',
 ]
 
+CLIENT_ENTRYPOINT = '/client'
+CLIENT_IMG = 'client:latest'
+CLIENT_NET = [
+    NETWORK_TEST_NAME,
+]
+CLIENT_DEPENDENCIES = [
+    'server',
+]
+CLIENT_ENV = [
+    'CLI_ID=1',
+    'CLI_LOG_LEVEL=DEBUG',
+]
+
 BASE_YAML = {
     'name': PROJECT_NAME,
+    'services': {
+        'server': {
+            'container_name': SERVER_NAME,
+            'image': SERVER_IMG,
+            'entrypoint': SERVER_ENTRYPOINT,
+            'environment': SERVER_ENV,
+            'networks': SERVER_NET,
+        }
+    },
     'networks': {
-        'testing_net': {
+        NETWORK_TEST_NAME: {
             'ipam': {
                 'driver': DRIVER_TYPE,
                 'config': [{
@@ -30,18 +57,18 @@ BASE_YAML = {
             }
         }
     },
-    'services': {
-        'server': {
-            'container_name': SERVER_NAME,
-            'image': SERVER_IMG,
-            'entrypoint': SERVER_ENTRYPOINT,
-            'environment': SERVER_ENV,
-            'networks': [
-                'testing_net'
-            ],
-        }
-    }
 }
 
+for client_number in range(1, int(argv[2]) + 1):
+    client_name = f'client{client_number}'
+    BASE_YAML['services'][client_name] = {
+        'container_name': client_name,
+        'image': CLIENT_IMG,
+        'entrypoint': CLIENT_ENTRYPOINT,
+        'environment': CLIENT_ENV,
+        'networks': CLIENT_NET,
+        'depends_on': CLIENT_DEPENDENCIES,
+    }
+
 with open(argv[1], "wt", encoding='utf-8') as file:
-    yaml.dump(BASE_YAML, file)
+    yaml.dump(BASE_YAML, file, sort_keys=False)
