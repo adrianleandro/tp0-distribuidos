@@ -3,8 +3,20 @@ This module generates a YAML configuration file
 that includes a server and a specified number of clients.
 """
 
-from sys import argv
+from sys import argv, stderr
 import yaml
+
+try:
+    yaml_file_name = argv[1]
+    n_clients = int(argv[2])
+    if n_clients < 1:
+        raise ValueError('number of clients must be an integer')
+except ValueError as e:
+    print(f'Error: {e}', file=stderr)
+    exit(-1)
+except IndexError:
+    print(f'Usage: ./{argv[0]} [dest YAML file] [number of clients]', file=stderr)
+    exit(-1)
 
 PROJECT_NAME = 'tp0'
 DRIVER_TYPE = 'default'
@@ -59,7 +71,7 @@ BASE_YAML = {
     },
 }
 
-for client_number in range(1, int(argv[2]) + 1):
+for client_number in range(1, n_clients + 1):
     client_name = f'client{client_number}'
     BASE_YAML['services'][client_name] = {
         'container_name': client_name,
@@ -70,5 +82,5 @@ for client_number in range(1, int(argv[2]) + 1):
         'depends_on': CLIENT_DEPENDENCIES,
     }
 
-with open(argv[1], "wt", encoding='utf-8') as file:
+with open(yaml_file_name, "wt", encoding='utf-8') as file:
     yaml.dump(BASE_YAML, file, sort_keys=False)
