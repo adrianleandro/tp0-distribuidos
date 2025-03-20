@@ -43,9 +43,6 @@ CLIENT_NET = [
 CLIENT_DEPENDENCIES = [
     'server',
 ]
-CLIENT_ENV = [
-    'CLI_LOG_LEVEL=DEBUG',
-]
 
 BASE_YAML = {
     'name': PROJECT_NAME,
@@ -76,11 +73,13 @@ for client_number in range(1, n_clients + 1):
         'container_name': client_name,
         'image': CLIENT_IMG,
         'entrypoint': CLIENT_ENTRYPOINT,
-        'environment': CLIENT_ENV,
+        'environment': [
+            f'CLI_ID={client_number}',
+            'CLI_LOG_LEVEL=DEBUG',
+        ],
         'networks': CLIENT_NET,
         'depends_on': CLIENT_DEPENDENCIES,
     }
-    BASE_YAML['services'][client_name]['environment'].append(f'CLI_ID={client_number}')
 
 with open(yaml_file_name, "wt", encoding='utf-8') as file:
     yaml.dump(BASE_YAML, file, sort_keys=False)
