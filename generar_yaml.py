@@ -44,7 +44,6 @@ CLIENT_DEPENDENCIES = [
     'server',
 ]
 CLIENT_ENV = [
-    'CLI_ID=1',
     'CLI_LOG_LEVEL=DEBUG',
 ]
 
@@ -81,6 +80,7 @@ for client_number in range(1, n_clients + 1):
         'networks': CLIENT_NET,
         'depends_on': CLIENT_DEPENDENCIES,
     }
+    BASE_YAML['services'][client_name]['environment'].append(f'CLI_ID={client_number}')
 
 with open(yaml_file_name, "wt", encoding='utf-8') as file:
     yaml.dump(BASE_YAML, file, sort_keys=False)
