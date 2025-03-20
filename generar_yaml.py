@@ -3,7 +3,7 @@ This module generates a YAML configuration file
 that includes a server and a specified number of clients.
 """
 
-from sys import argv, stderr
+from sys import argv, stderr, exit as sys_exit
 import yaml
 
 try:
@@ -13,10 +13,10 @@ try:
         raise ValueError('number of clients must be an integer')
 except ValueError as e:
     print(f'Error: {e}', file=stderr)
-    exit(-1)
+    sys_exit(-1)
 except IndexError:
     print(f'Usage: ./{argv[0]} [dest YAML file] [number of clients]', file=stderr)
-    exit(-1)
+    sys_exit(-1)
 
 PROJECT_NAME = 'tp0'
 DRIVER_TYPE = 'default'
