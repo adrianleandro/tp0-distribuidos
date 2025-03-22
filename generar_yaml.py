@@ -34,12 +34,22 @@ SERVER_ENV = [
     'PYTHONUNBUFFERED=1',
     'LOGGING_LEVEL=DEBUG',
 ]
+SERVER_VOLUMES = [{
+    'type': 'bind',
+    'source': './server/config.ini',
+    'target': '/build/',
+}]
 
 CLIENT_ENTRYPOINT = '/client'
 CLIENT_IMG = 'client:latest'
 CLIENT_NET = [
     NETWORK_TEST_NAME,
 ]
+CLIENT_VOLUMES = [{
+    'type': 'bind',
+    'source': './client/config.yaml',
+    'target': '/build/',
+}]
 CLIENT_DEPENDENCIES = [
     'server',
 ]
@@ -53,6 +63,7 @@ BASE_YAML = {
             'entrypoint': SERVER_ENTRYPOINT,
             'environment': SERVER_ENV,
             'networks': SERVER_NET,
+            'volumes': SERVER_VOLUMES,
         }
     },
     'networks': {
@@ -79,6 +90,7 @@ for client_number in range(1, n_clients + 1):
         ],
         'networks': CLIENT_NET,
         'depends_on': CLIENT_DEPENDENCIES,
+        'volumes': CLIENT_VOLUMES,
     }
 
 with open(yaml_file_name, "wt", encoding='utf-8') as file:
