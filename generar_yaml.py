@@ -32,7 +32,6 @@ SERVER_NET = [
 ]
 SERVER_ENV = [
     'PYTHONUNBUFFERED=1',
-    'LOGGING_LEVEL=DEBUG',
 ]
 SERVER_VOLUMES = [{
     'type': 'bind',
@@ -86,7 +85,6 @@ for client_number in range(1, n_clients + 1):
         'entrypoint': CLIENT_ENTRYPOINT,
         'environment': [
             f'CLI_ID={client_number}',
-            'CLI_LOG_LEVEL=DEBUG',
         ],
         'networks': CLIENT_NET,
         'depends_on': CLIENT_DEPENDENCIES,
