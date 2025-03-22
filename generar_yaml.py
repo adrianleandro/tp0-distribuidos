@@ -30,9 +30,6 @@ SERVER_ENTRYPOINT = 'python3 /main.py'
 SERVER_NET = [
     NETWORK_TEST_NAME
 ]
-SERVER_ENV = [
-    'PYTHONUNBUFFERED=1',
-]
 SERVER_VOLUMES = [{
     'type': 'bind',
     'source': './server/config.ini',
@@ -60,7 +57,6 @@ BASE_YAML = {
             'container_name': SERVER_NAME,
             'image': SERVER_IMG,
             'entrypoint': SERVER_ENTRYPOINT,
-            'environment': SERVER_ENV,
             'networks': SERVER_NET,
             'volumes': SERVER_VOLUMES,
         }
