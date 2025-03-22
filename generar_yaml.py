@@ -27,13 +27,14 @@ NETWORK_TEST_NAME = 'testing_net'
 SERVER_NAME = 'server'
 SERVER_IMG = 'server:latest'
 SERVER_ENTRYPOINT = 'python3 /main.py'
+SERVER_CONFIG = 'config.ini'
 SERVER_NET = [
     NETWORK_TEST_NAME
 ]
 SERVER_VOLUMES = [{
     'type': 'bind',
-    'source': './server/config.ini',
-    'target': '/config.ini',
+    'source': f'./server/{SERVER_CONFIG}',
+    'target': f'/{SERVER_CONFIG}',
 }]
 
 CLIENT_ENTRYPOINT = '/client'
@@ -41,10 +42,11 @@ CLIENT_IMG = 'client:latest'
 CLIENT_NET = [
     NETWORK_TEST_NAME,
 ]
+CLIENT_CONFIG = 'config.yaml'
 CLIENT_VOLUMES = [{
     'type': 'bind',
-    'source': './client/config.yaml',
-    'target': '/config.yaml',
+    'source': f'./client/{CLIENT_CONFIG}',
+    'target': f'/{CLIENT_CONFIG}',
 }]
 CLIENT_DEPENDENCIES = [
     'server',

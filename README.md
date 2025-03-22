@@ -185,3 +185,8 @@ La corrección personal tendrá en cuenta la calidad del código entregado y cas
 Se provee el script `generar-compose.sh`, el cual llama a un subscript implementado en Python. El mismo recibe los mismos parámetros que el script principal y en el mismo orden, y en caso de que falte alguno, se mostrará por pantalla el uso correcto para invocarlo.
 
 El script es invocado con el comando `bash generar-compose.sh [dest YAML file] [number of clients]` donde `[dest YAML file]` es el nombre del archivo que se creará o sobreescribirá con la definición de Docker Compose y el parámetro `[number of clients]` la cantidad de clientes creados.
+
+### Ejercicio 2
+Para este ejercicio, se agregó en el subscript `generar_yaml.sh` la opción de hacer un `bind mount` al container, para inyectarle los archivos de configuración y no tener que reconstruirlos al construir la imagen. Se agrega en cada aplicación un archivo `.dockerignore` cuya función es hacer que se ignoren dichos archivos de configuración al hacer COPY en los `Dockerfile`.
+
+Se puede probar la persistencia de los mismos al entrar en el entrypoint de alguna de las aplicaciones y agregando una variable de entorno.
