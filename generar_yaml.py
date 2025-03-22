@@ -37,7 +37,7 @@ SERVER_ENV = [
 SERVER_VOLUMES = [{
     'type': 'bind',
     'source': './server/config.ini',
-    'target': '/build/',
+    'target': '/config.ini',
 }]
 
 CLIENT_ENTRYPOINT = '/client'
@@ -48,7 +48,7 @@ CLIENT_NET = [
 CLIENT_VOLUMES = [{
     'type': 'bind',
     'source': './client/config.yaml',
-    'target': '/build/',
+    'target': '/config.yaml',
 }]
 CLIENT_DEPENDENCIES = [
     'server',
