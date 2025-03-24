@@ -34,6 +34,7 @@ type Client struct {
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
 		config: config,
+		sigc:   make(chan os.Signal, 1),
 	}
 
 	signal.Notify(client.sigc, syscall.SIGTERM)
