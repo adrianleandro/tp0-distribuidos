@@ -1,6 +1,7 @@
 import socket
 import logging
 from signal import signal, SIGTERM
+from sys import exit as sys_exit
 
 
 class Server:
@@ -28,6 +29,7 @@ class Server:
             self.__handle_client_connection(client_sock)
 
         self._server_socket.close()
+        sys_exit(0)
 
     def __handle_client_connection(self, client_sock):
         """
