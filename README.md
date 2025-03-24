@@ -190,3 +190,8 @@ El script es invocado con el comando `bash generar-compose.sh [dest YAML file] [
 Para este ejercicio, se agregó en el subscript `generar_yaml.sh` la opción de hacer un `bind mount` al container, para inyectarle los archivos de configuración y no tener que reconstruirlos al construir la imagen. Se agrega en cada aplicación un archivo `.dockerignore` cuya función es hacer que se ignoren dichos archivos de configuración al hacer COPY en los `Dockerfile`.
 
 Se puede probar la persistencia de los mismos al entrar en el entrypoint de alguna de las aplicaciones y agregando una variable de entorno.
+
+### Ejercicio 3
+Se provee un nuevo script `validar-echo-server.sh` en el cual se levanta temporalmente un contenedor que se conecta a la misma red en la que se encuentra el servidor, y usa el comando `netcat` para enviar una request al mismo, usando un mensaje cualquiera, y comparando que sea el mismo en la salida. En caso de éxito, se loguea el resultado **success**, y si el mensaje que llega del servidor no es el mismo, envia **fail** como resultado.
+
+Para usar el mismo basta con ejecutar el comando `sh validar-echo-server.sh`.
