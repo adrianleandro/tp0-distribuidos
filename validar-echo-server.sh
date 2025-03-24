@@ -9,7 +9,7 @@ MESSAGE_TO_SEND="is this thing on?"
 NETWORK_TEST_OUTPUT=$(echo "$MESSAGE_TO_SEND" | docker run --rm -i --network "$NETWORK_NAME" busybox:latest nc "$SERVER_NAME" "$SERVER_PORT")
 RESULT_MESSAGE="action: test_echo_server | result:"
 
-if [ "$MESSAGE_TO_SEND" == "$NETWORK_TEST_OUTPUT" ]; then
+if [ "$MESSAGE_TO_SEND" = "$NETWORK_TEST_OUTPUT" ]; then
   RESULT="success"
 else
   RESULT="fail"
