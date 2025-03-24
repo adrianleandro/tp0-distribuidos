@@ -40,11 +40,12 @@ func NewClient(config ClientConfig) *Client {
 	signal.Notify(client.sigc, syscall.SIGTERM)
 	go func() {
 		<-client.sigc
+		log.Infof(
+			"action: close | result: in_progress | client_id: %v ",
+			client.config.ID,
+		)
 		if client.conn != nil {
-			err := client.conn.Close()
-			if err != nil {
-				return
-			}
+			client.conn.Close()
 		}
 		os.Exit(0)
 	}()
@@ -104,4 +105,5 @@ func (c *Client) StartClientLoop() {
 
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+	close(c.sigc)
 }
