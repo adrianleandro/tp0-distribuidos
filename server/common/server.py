@@ -14,6 +14,10 @@ class Server:
 
     def signal_exit(self, signum, frame):
         self.exit_program = True
+        self._server_socket.close()
+
+        if self._client_socket:
+            self._client_socket.close()
 
     def run(self):
         """
@@ -27,10 +31,6 @@ class Server:
         while not self.exit_program:
             client_sock = self.__accept_new_connection()
             self.__handle_client_connection(client_sock)
-
-        self._server_socket.close()
-        if self._client_socket:
-            self._client_socket.close()
 
     def __handle_client_connection(self, client_sock):
         """
