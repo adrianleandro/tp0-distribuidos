@@ -9,7 +9,7 @@ import yaml
 try:
     yaml_file_name = argv[1]
     n_clients = int(argv[2])
-    if n_clients < 1:
+    if n_clients < 0:
         raise ValueError('number of clients must be an integer')
 except ValueError as e:
     print(f'Error: {e}', file=stderr)
