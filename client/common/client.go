@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/op/go-logging"
@@ -22,6 +25,7 @@ type ClientConfig struct {
 // Client Entity that encapsulates how
 type Client struct {
 	config ClientConfig
+	sigc   chan os.Signal
 	conn   net.Conn
 }
 
@@ -31,6 +35,19 @@ func NewClient(config ClientConfig) *Client {
 	client := &Client{
 		config: config,
 	}
+
+	signal.Notify(client.sigc, syscall.SIGTERM)
+	go func() {
+		<-client.sigc
+		if client.conn != nil {
+			err := client.conn.Close()
+			if err != nil {
+				return
+			}
+		}
+		os.Exit(0)
+	}()
+
 	return client
 }
 
