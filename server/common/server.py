@@ -31,8 +31,8 @@ class Server:
             client_sock = self.__accept_new_connection()
             self.__handle_client_connection(client_sock)
 
+        logging.info('action: exit | result: success')
         self._server_socket.close()
-        logging.info('action: close | result: success')
 
     def __handle_client_connection(self, client_sock):
         """
