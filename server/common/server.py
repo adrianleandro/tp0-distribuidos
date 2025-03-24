@@ -1,7 +1,6 @@
 import socket
 import logging
 from signal import signal, SIGTERM
-from sys import exit as sys_exit
 
 
 class Server:
@@ -10,6 +9,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._client_socket = None
         self.exit_program = False
 
     def signal_exit(self, signum, frame):
@@ -29,7 +29,8 @@ class Server:
             self.__handle_client_connection(client_sock)
 
         self._server_socket.close()
-        sys_exit(0)
+        if self._client_socket:
+            self._client_socket.close()
 
     def __handle_client_connection(self, client_sock):
         """
@@ -62,4 +63,5 @@ class Server:
         logging.info('action: accept_connections | result: in_progress')
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
+        self._client_socket = c
         return c
