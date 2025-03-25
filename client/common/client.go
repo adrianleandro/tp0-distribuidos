@@ -26,6 +26,7 @@ type ClientConfig struct {
 type Client struct {
 	config ClientConfig
 	sigc   chan os.Signal
+	exit   bool
 	conn   net.Conn
 }
 
@@ -40,6 +41,7 @@ func NewClient(config ClientConfig) *Client {
 	signal.Notify(client.sigc, syscall.SIGTERM)
 	go func() {
 		<-client.sigc
+		client.exit = true
 		log.Infof(
 			"action: close | result: in_progress | client_id: %v ",
 			client.config.ID,
@@ -47,7 +49,6 @@ func NewClient(config ClientConfig) *Client {
 		if client.conn != nil {
 			client.conn.Close()
 		}
-		os.Exit(0)
 	}()
 
 	return client
@@ -74,6 +75,10 @@ func (c *Client) StartClientLoop() {
 	// There is an autoincremental msgID to identify every message sent
 	// Messages if the message amount threshold has not been surpassed
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
+		if c.exit {
+			return
+		}
+
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
 

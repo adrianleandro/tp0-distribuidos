@@ -32,8 +32,7 @@ class Server:
         while not self.exit_program:
             try:
                 client_sock = self.__accept_new_connection()
-                if client_sock is not None:
-                    self.__handle_client_connection(client_sock)
+                self.__handle_client_connection(client_sock)
             except OSError as e:
                 if self.exit_program:
                     logging.info(f'action: close | result: success')
