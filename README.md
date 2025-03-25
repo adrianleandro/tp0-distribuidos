@@ -195,3 +195,6 @@ Se puede probar la persistencia de los mismos al entrar en el entrypoint de algu
 Se provee un nuevo script `validar-echo-server.sh` en el cual se levanta temporalmente un contenedor que se conecta a la misma red en la que se encuentra el servidor, y usa el comando `netcat` para enviar una request al mismo, usando un mensaje cualquiera, y comparando que sea el mismo en la salida. En caso de éxito, se loguea el resultado **success**, y si el mensaje que llega del servidor no es el mismo, envia **fail** como resultado.
 
 Para usar el mismo basta con ejecutar el comando `sh validar-echo-server.sh`.
+
+### Ejercicio 4
+Se modifican tanto cliente como servidor para hacer un *graceful shutdown* al recibir la señal de `SIGTERM`. Para probarlos basta con enviarle una de esas señales a cualquiera de las dos aplicaciones durante su ejecución.
