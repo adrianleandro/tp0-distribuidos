@@ -9,7 +9,6 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-        self._server_socket.settimeout(1.0)
         self._client_socket = None
         self.exit_program = False
 
@@ -35,11 +34,10 @@ class Server:
                 client_sock = self.__accept_new_connection()
                 if client_sock is not None:
                     self.__handle_client_connection(client_sock)
-            except Exception as e:
+            except OSError as e:
                 if self.exit_program:
-                    break
+                    logging.info(f'action: close | result: success')
 
-        logging.info('action: exit | result: success')
 
     def __handle_client_connection(self, client_sock):
         """
@@ -70,12 +68,7 @@ class Server:
 
         # Connection arrived
         logging.info('action: accept_connections | result: in_progress')
-        try:
-            c, addr = self._server_socket.accept()
-            logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
-            self._client_socket = c
-            return c
-        except socket.timeout:
-            if self.exit_program:
-                raise Exception
-            return None
+        c, addr = self._server_socket.accept()
+        logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
+        self._client_socket = c
+        return c
