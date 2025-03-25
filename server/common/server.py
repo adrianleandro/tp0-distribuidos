@@ -9,6 +9,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._server_socket.settimeout(1.0)
         self._client_socket = None
         self.exit_program = False
 
@@ -17,6 +18,8 @@ class Server:
 
         if self._client_socket:
             self._client_socket.close()
+
+        self._server_socket.close()
 
     def run(self):
         """
@@ -28,11 +31,15 @@ class Server:
         """
         signal(SIGTERM, self.signal_exit)
         while not self.exit_program:
-            client_sock = self.__accept_new_connection()
-            self.__handle_client_connection(client_sock)
+            try:
+                client_sock = self.__accept_new_connection()
+                if client_sock is not None:
+                    self.__handle_client_connection(client_sock)
+            except Exception as e:
+                if self.exit_program:
+                    break
 
         logging.info('action: exit | result: success')
-        self._server_socket.close()
 
     def __handle_client_connection(self, client_sock):
         """
@@ -63,7 +70,12 @@ class Server:
 
         # Connection arrived
         logging.info('action: accept_connections | result: in_progress')
-        c, addr = self._server_socket.accept()
-        logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
-        self._client_socket = c
-        return c
+        try:
+            c, addr = self._server_socket.accept()
+            logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
+            self._client_socket = c
+            return c
+        except socket.timeout:
+            if self.exit_program:
+                raise Exception
+            return None
