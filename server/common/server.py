@@ -2,7 +2,7 @@ import socket
 import logging
 from signal import signal, SIGTERM
 
-from server.common.utils import Bet, store_bets
+from utils import Bet, store_bets
 
 
 class Server:
