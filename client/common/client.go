@@ -68,7 +68,8 @@ func (c *Client) createClientSocket() error {
 }
 
 func (c *Client) placeBet() error {
-	msg := c.bet.Encode()
+	a := []byte(c.config.ID)
+	msg := append(a, c.bet.Encode()...)
 	written, err := c.conn.Write(msg)
 	if err != nil {
 		return err
