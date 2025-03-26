@@ -69,16 +69,17 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-func (c *Client) placeBet() error {
+func (c *Client) placeBets() error {
 	id := []byte(c.config.ID)
 	idLength := []byte{'b', uint8(len(id))}
 	msg := append(idLength, id...)
 
 	bets, err := c.betReader.Read()
+	msg = append(msg, uint8(len(bets)))
 	for _, bet := range bets {
 		msg = append(msg, bet.Encode()...)
 	}
-	
+
 	written, err := c.conn.Write(msg)
 	if err != nil {
 		return err
@@ -126,7 +127,7 @@ func (c *Client) Run() {
 		return
 	}
 
-	err = c.placeBet()
+	err = c.placeBets()
 
 	if err != nil {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
