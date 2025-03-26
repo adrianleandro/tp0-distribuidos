@@ -112,6 +112,10 @@ func (c *Client) readResponse() (string, error) {
 	}
 }
 
+func (c *Client) Close() {
+	c.betReader.Close()
+}
+
 // Run Send a bet to the server
 func (c *Client) Run() {
 	if c.exit {
@@ -160,5 +164,4 @@ func (c *Client) Run() {
 	}
 
 	c.conn.Close()
-	c.betReader.Close()
 }
