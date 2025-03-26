@@ -2,7 +2,8 @@ import socket
 import logging
 from signal import signal, SIGTERM
 
-from common.utils import Response, Bet, store_bets
+from common.response import Response
+from common.utils import Bet, store_bets
 
 
 class Server:
