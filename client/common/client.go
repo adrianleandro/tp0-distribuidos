@@ -73,6 +73,8 @@ func (c *Client) placeBet() error {
 	idLength := []byte{'b', uint8(len(id))}
 	msg := append(idLength, id...)
 	msg = append(msg, c.bet.Encode()...)
+
+	log.Infof("action: encode_message | result: success | message: %v", msg)
 	written, err := c.conn.Write(msg)
 	if err != nil {
 		return err
