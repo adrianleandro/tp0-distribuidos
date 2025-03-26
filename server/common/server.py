@@ -71,9 +71,10 @@ class Server:
         agency_length = msg[1]
         agency = msg[2:2+agency_length]
         bet_quantity = msg[2+agency_length]
-        offset = 2+agency_length+1
+        offset = 2 + agency_length + 1
         for bet in range(bet_quantity):
             bet_length = msg[offset]
+            offset += 1
             bet = Bet.decode(agency, msg[offset:offset+bet_length])
             offset += bet_length
             bets.append(bet)
