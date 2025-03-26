@@ -106,10 +106,16 @@ func main() {
 	clientConfig := common.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
 		ID:            v.GetString("id"),
-		LoopAmount:    v.GetInt("loop.amount"),
-		LoopPeriod:    v.GetDuration("loop.period"),
 	}
 
-	client := common.NewClient(clientConfig)
-	client.StartClientLoop()
+	bet := common.Bet{
+		FirstName: v.GetString("NOMBRE"),
+		Surname:   v.GetString("APELLIDO"),
+		Document:  v.GetString("DOCUMENTO"),
+		Birthdate: v.GetString("NACIMIENTO"),
+		Number:    v.GetString("NUMERO"),
+	}
+
+	client := common.NewClient(clientConfig, bet)
+	client.Run()
 }

@@ -1,15 +1,12 @@
 package common
 
 import (
-	"bufio"
 	"fmt"
+	"github.com/op/go-logging"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-
-	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("log")
@@ -18,13 +15,12 @@ var log = logging.MustGetLogger("log")
 type ClientConfig struct {
 	ID            string
 	ServerAddress string
-	LoopAmount    int
-	LoopPeriod    time.Duration
 }
 
 // Client Entity that encapsulates how
 type Client struct {
 	config ClientConfig
+	bet    Bet
 	sigc   chan os.Signal
 	exit   bool
 	conn   net.Conn
@@ -32,10 +28,11 @@ type Client struct {
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
-func NewClient(config ClientConfig) *Client {
+func NewClient(config ClientConfig, bet Bet) *Client {
 	client := &Client{
 		config: config,
 		sigc:   make(chan os.Signal, 1),
+		bet:    bet,
 	}
 
 	signal.Notify(client.sigc, syscall.SIGTERM)
@@ -70,44 +67,47 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		if c.exit {
-			return
-		}
-
-		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
-
-		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
-			"[CLIENT %v] Message N°%v\n",
-			c.config.ID,
-			msgID,
-		)
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
-
-		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return
-		}
-
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-			c.config.ID,
-			msg,
-		)
-
-		// Wait a time between sending one message and the next one
-		time.Sleep(c.config.LoopPeriod)
-
+func (c *Client) placeBet() error {
+	msg := c.bet.Encode()
+	written, err := c.conn.Write(msg)
+	if err != nil {
+		return err
 	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+	if written != len(msg) {
+		return fmt.Errorf("partial write")
+	}
+	return nil
+}
+
+// Run Send a bet to the server
+func (c *Client) Run() {
+	if c.exit {
+		return
+	}
+
+	err := c.createClientSocket()
+
+	if err != nil {
+		log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return
+	}
+
+	err = c.placeBet()
+
+	if err != nil {
+		log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return
+	}
+
+	c.conn.Close()
+
+	log.Infof("action: send_bet | result: success | client_id: %v",
+		c.config.ID,
+	)
 }
