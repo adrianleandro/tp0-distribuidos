@@ -23,13 +23,13 @@ func (bet *Bet) Encode() []byte {
 	binary.Write(&buffer, binary.BigEndian, []byte(bet.Surname))
 
 	binary.Write(&buffer, binary.BigEndian, uint8(len(bet.Document)))
-	binary.Write(&buffer, binary.BigEndian, bet.Document)
+	binary.Write(&buffer, binary.BigEndian, []byte(bet.Document))
 
 	binary.Write(&buffer, binary.BigEndian, uint8(len(bet.Birthdate)))
 	binary.Write(&buffer, binary.BigEndian, []byte(bet.Birthdate))
 
 	binary.Write(&buffer, binary.BigEndian, uint8(len(bet.Number)))
-	binary.Write(&buffer, binary.BigEndian, bet.Number)
+	binary.Write(&buffer, binary.BigEndian, []byte(bet.Number))
 
 	return buffer.Bytes()
 }
