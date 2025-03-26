@@ -75,6 +75,7 @@ class Server:
         for bet in range(bet_quantity):
             read, bet = Bet.decode(agency, msg[offset:])
             offset += read
+            bets.append(bet)
         return bets
 
     def __accept_new_connection(self):
