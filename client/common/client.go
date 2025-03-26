@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"github.com/op/go-logging"
+	"io"
 	"net"
 	"os"
 	"os/signal"
@@ -68,8 +69,10 @@ func (c *Client) createClientSocket() error {
 }
 
 func (c *Client) placeBet() error {
-	a := []byte(c.config.ID)
-	msg := append(a, c.bet.Encode()...)
+	id := []byte(c.config.ID)
+	idLength := []byte{'b', byte(len(id))}
+	msg := append(idLength, id...)
+	msg = append(msg, c.bet.Encode()...)
 	written, err := c.conn.Write(msg)
 	if err != nil {
 		return err
@@ -78,6 +81,26 @@ func (c *Client) placeBet() error {
 		return fmt.Errorf("partial write")
 	}
 	return nil
+}
+
+func (c *Client) readResponse() (string, error) {
+	message := make([]byte, 2)
+	_, err := io.ReadFull(c.conn, message)
+	if err != nil {
+		return "", fmt.Errorf("failed to read message: %v", err)
+	}
+	if message[0] != 'a' {
+		return "", fmt.Errorf("invalid response type: %x", message[0])
+	}
+
+	switch message[1] {
+	case 0:
+		return "ok", nil
+	case 1:
+		return "bad request", nil
+	default:
+		return fmt.Sprintf("unknown response"), nil
+	}
 }
 
 // Run Send a bet to the server
@@ -103,13 +126,28 @@ func (c *Client) Run() {
 			c.config.ID,
 			err,
 		)
+		c.conn.Close()
 		return
 	}
-
-	c.conn.Close()
 
 	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
 		c.bet.Document,
 		c.bet.Number,
 	)
+
+	resp, err := c.readResponse()
+
+	if err != nil {
+		log.Errorf("action: response | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+	} else {
+		log.Errorf("action: response | result: %v | client_id: %v",
+			resp,
+			c.config.ID,
+		)
+	}
+
+	c.conn.Close()
 }

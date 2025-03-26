@@ -2,7 +2,7 @@ import socket
 import logging
 from signal import signal, SIGTERM
 
-from common.utils import Bet, store_bets
+from common.utils import Response, Bet, store_bets
 
 
 class Server:
@@ -51,10 +51,12 @@ class Server:
             bet = self.__read_bet(client_sock)
             store_bets([bet])
             logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
-            # TODO: Modify the send to avoid short-writes
-            # client_sock.send("{}\n".format(msg).encode('utf-8'))
+            client_sock.send(Response.OK.encode())
         except OSError as e:
-            logging.error(f'action: receive_message | result: fail | error: {e}')
+            logging.error(f'action: apuesta_almacenada | result: fail | error: {e}')
+        except ValueError as e:
+            logging.error(f'action: apuesta_almacenada | result: fail | error: {e}')
+            client_sock.send(Response.BAD_REQUEST.encode())
         finally:
             client_sock.close()
 
@@ -62,8 +64,11 @@ class Server:
         msg = client_sock.recv(1024)
         if not msg:
             raise OSError('Connection closed')
-        agency = chr(msg[0])
-        bet = Bet.decode(agency, msg[1:])
+        if chr(msg[0]) != 'b':
+            raise ValueError('Bad message')
+        agency_length = msg[1]
+        agency = msg[2:agency_length]
+        bet = Bet.decode(agency, msg[agency_length:])
         return bet
 
     def __accept_new_connection(self):
