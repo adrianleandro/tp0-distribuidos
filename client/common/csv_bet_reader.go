@@ -35,8 +35,9 @@ func CreateBetReader(ID string, batchSize int) *CsvBetReader {
 
 func (br *CsvBetReader) Read() ([]Bet, error) {
 	var bets []Bet
+	var i int
 
-	for i := br.batchOffset; i < br.batchSize && br.scanner.Scan(); i++ {
+	for i = br.batchOffset; i < br.batchOffset+br.batchSize && br.scanner.Scan(); i++ {
 		line := br.scanner.Text()
 		data := strings.Split(line, DataSeparator)
 		if len(data) != 5 {
@@ -50,8 +51,8 @@ func (br *CsvBetReader) Read() ([]Bet, error) {
 			Number:    data[4],
 		}
 		bets = append(bets, bet)
-		br.batchOffset++
 	}
+	br.batchOffset = i
 
 	if err := br.scanner.Err(); err != nil {
 		return bets, err

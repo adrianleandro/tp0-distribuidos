@@ -73,7 +73,12 @@ func (c *Client) placeBet() error {
 	id := []byte(c.config.ID)
 	idLength := []byte{'b', uint8(len(id))}
 	msg := append(idLength, id...)
-	//msg = append(msg, c.bet.Encode()...)
+
+	bets, err := c.betReader.Read()
+	for _, bet := range bets {
+		msg = append(msg, bet.Encode()...)
+	}
+	
 	written, err := c.conn.Write(msg)
 	if err != nil {
 		return err
