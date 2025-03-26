@@ -49,19 +49,22 @@ class Server:
         client socket will also be closed
         """
         try:
-            bets = self.__read_bets(client_sock)
+            quantity, bets = self.__read_bets(client_sock)
             store_bets(bets)
-            logging.info(f'action: apuesta_almacenada | result: success | cantidad: {len(bets)}')
+            if quantity == len(bets):
+                logging.info(f'action: apuesta_almacenada | result: success | cantidad: {quantity}')
+            else:
+                logging.error(f'action: apuesta_almacenada | result: error | cantidad: {quantity}')
             client_sock.send(Response.OK.encode())
         except OSError as e:
-            logging.error(f'action: apuesta_almacenada | result: fail | error: {e}')
+            logging.error(f'action: apuesta_almacenada | result: fail | cantidad: {e}')
         except (ValueError, IndexError) as e:
             logging.error(f'action: apuesta_almacenada | result: fail | error: {e}')
             client_sock.send(Response.BAD_REQUEST.encode())
         finally:
             client_sock.close()
 
-    def __read_bets(self, client_sock) -> list[Bet]:
+    def __read_bets(self, client_sock) -> (int, list[Bet]):
         msg = client_sock.recv(8192)
         bets = []
         if not msg:
@@ -69,8 +72,8 @@ class Server:
         if chr(msg[0]) != 'b':
             raise ValueError('Bad message')
         agency_length = msg[1]
-        agency = msg[2:2+agency_length]
-        bet_quantity = msg[2+agency_length]
+        agency = msg[2:2 + agency_length]
+        bet_quantity = msg[2 + agency_length]
         offset = 2 + agency_length + 1
         for bet in range(bet_quantity):
             bet_length = msg[offset]
@@ -78,7 +81,7 @@ class Server:
             bet = Bet.decode(agency, msg[offset:offset+bet_length])
             offset += bet_length
             bets.append(bet)
-        return bets
+        return bet_quantity, bets
 
     def __accept_new_connection(self):
         """
