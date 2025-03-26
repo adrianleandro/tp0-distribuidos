@@ -49,9 +49,9 @@ class Server:
         client socket will also be closed
         """
         try:
-            bet = self.__read_bet(client_sock)
-            store_bets([bet])
-            logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
+            bets = self.__read_bets(client_sock)
+            store_bets(bets)
+            logging.info(f'action: apuesta_almacenada | result: success | cantidad: {len(bets)}')
             client_sock.send(Response.OK.encode())
         except OSError as e:
             logging.error(f'action: apuesta_almacenada | result: fail | error: {e}')
@@ -61,16 +61,21 @@ class Server:
         finally:
             client_sock.close()
 
-    def __read_bet(self, client_sock) -> Bet:
-        msg = client_sock.recv(1024)
+    def __read_bets(self, client_sock) -> list[Bet]:
+        msg = client_sock.recv(8192)
+        bets = []
         if not msg:
             raise OSError('Connection closed')
         if chr(msg[0]) != 'b':
             raise ValueError('Bad message')
         agency_length = msg[1]
         agency = msg[2:2+agency_length]
-        bet = Bet.decode(agency, msg[2+agency_length:])
-        return bet
+        offset = 3+agency_length
+        bet_quantity = msg[2+agency_length:offset]
+        for bet in range(bet_quantity):
+            read, bet = Bet.decode(agency, msg[offset:])
+            offset += read
+        return bets
 
     def __accept_new_connection(self):
         """

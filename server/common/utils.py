@@ -25,7 +25,7 @@ class Bet:
         self.number = int(number)
 
     @classmethod
-    def decode(cls, agency: str, message: bytes) -> 'Bet':
+    def decode(cls, agency: str, message: bytes) -> (int, 'Bet'):
         def read_field(msg: bytes, index: int) -> tuple[str, int]:
             length = msg[index]
             field = msg[index + 1:index + 1 + length].decode('utf-8')
@@ -40,7 +40,7 @@ class Bet:
         if not first_name or not last_name or not document or not birth_date or not number:
             raise ValueError('Missing fields')
 
-        return Bet(agency, first_name, last_name, document, birth_date, number)
+        return idx, Bet(agency, first_name, last_name, document, birth_date, number)
 
 """ Checks whether a bet won the prize or not. """
 def has_won(bet: Bet) -> bool:
