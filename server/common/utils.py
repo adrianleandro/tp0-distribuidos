@@ -1,5 +1,6 @@
 import csv
 import datetime
+import logging
 import time
 
 """ Bets storage location. """
@@ -36,6 +37,7 @@ class Bet:
         document, idx = read_field(message, idx)
         birth_date, idx = read_field(message, idx)
         number, idx = read_field(message, idx)
+        logging.info(f'server |{first_name} {last_name} {document} {birth_date} {number}')
 
         return Bet(agency, first_name, last_name, document, birth_date, number)
 
