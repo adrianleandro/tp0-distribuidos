@@ -52,14 +52,14 @@ class Server:
             quantity, bets = self.__read_bets(client_sock)
             store_bets(bets)
             if quantity == len(bets):
-                logging.info(f'action: apuesta_almacenada | result: success | cantidad: {quantity}')
+                logging.info(f'action: apuesta_recibida | result: success | cantidad: {quantity}')
             else:
-                logging.error(f'action: apuesta_almacenada | result: error | cantidad: {quantity}')
+                logging.error(f'action: apuesta_recibida | result: error | cantidad: {quantity}')
             client_sock.send(Response.OK.encode())
         except OSError as e:
-            logging.error(f'action: apuesta_almacenada | result: fail | error: {e}')
+            logging.error(f'action: apuesta_recibida | result: fail | error: {e}')
         except (ValueError, IndexError) as e:
-            logging.error(f'action: apuesta_almacenada | result: fail | error: {e}')
+            logging.error(f'action: apuesta_recibida | result: fail | error: {e}')
             client_sock.send(Response.BAD_REQUEST.encode())
         finally:
             client_sock.close()
