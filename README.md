@@ -198,3 +198,27 @@ Para usar el mismo basta con ejecutar el comando `sh validar-echo-server.sh`.
 
 ### Ejercicio 4
 Se modifican tanto cliente como servidor para hacer un *graceful shutdown* al recibir la señal de `SIGTERM`. Para probarlos basta con enviarle una de esas señales a cualquiera de las dos aplicaciones durante su ejecución.
+
+### Ejercicio 5
+Se crea un protocolo binario para la transmisión de apuestas. Todos los datos se asumen de tipo string, las cuales se codifican de la siguiente manera:
+
+| N | byte1 | byte2 | ... | byte N |
+|---|-------|-------|-----|--------|
+
+El mensaje de una apuesta debe contener la letra b minúscula en su inicio, seguida de 6 strings codificadas (las llamaremos cstr en el diagrama), debe quedar entonces de la forma:
+
+| b | cstr_agencia | cstr_nombre | cstr_apellido | cstr_documento | cstr_fecha_nacimiento | cstr_numero |
+|---|--------------|-------------|---------------|----------------|-----------------------|-------------|
+
+El mensaje de respuesta del servidor es más sencillo al contar con solo 2 bytes. El primero es una a minúscula, para marcar el tipo de mensaje, y el segundo el código de respuesta, que es un número entero.
+
+| a | codigo_respuesta |
+|---|------------------|
+
+Los códigos de respuesta actuales son:
+- 0: La request fue procesada con éxito
+- 1: La request es inválida
+
+Para codificar una apuesta se provee el método `Encode()` en el archivo `bet.go` del lado del cliente, mientras que para decodificarla el servidor posee el método `Bet.decode(message)` el cual devuelve un objeto `Bet`.
+
+Para las respuestas, se provee la clase `Response` en el servidor.
