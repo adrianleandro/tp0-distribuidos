@@ -48,7 +48,7 @@ class Server:
         client socket will also be closed
         """
         try:
-            bet = self.__read_bet()
+            bet = self.__read_bet(client_sock)
             store_bets([bet])
             logging.info(f'action: apuesta_almacenada | result: success | dni: ${bet.document} | numero: ${bet.number}')
             # TODO: Modify the send to avoid short-writes
@@ -58,8 +58,8 @@ class Server:
         finally:
             client_sock.close()
 
-    def __read_bet(self) -> Bet:
-        msg = self._client_socket.recv(1024)
+    def __read_bet(self, client_sock) -> Bet:
+        msg = client_sock.recv(1024)
         if not msg:
             raise OSError('Connection closed')
         agency = msg[0].decode('utf-8')
