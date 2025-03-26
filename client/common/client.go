@@ -97,7 +97,7 @@ func (c *Client) readResponse() (string, error) {
 	case 0:
 		return "ok", nil
 	case 1:
-		return "bad request", nil
+		return "bad_request", nil
 	default:
 		return fmt.Sprintf("unknown response"), nil
 	}
@@ -143,9 +143,9 @@ func (c *Client) Run() {
 			err,
 		)
 	} else {
-		log.Errorf("action: response | result: %v | client_id: %v",
-			resp,
+		log.Infof("action: response | result: success | client_id: %v | response: %v",
 			c.config.ID,
+			resp,
 		)
 	}
 
