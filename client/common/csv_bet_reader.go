@@ -27,7 +27,7 @@ func CreateBetReader(ID string, batchSize int) *CsvBetReader {
 
 	return &CsvBetReader{
 		file:        file,
-		batchSize:   batchSize,
+		batchSize:   100,
 		batchOffset: 0,
 		scanner:     bufio.NewScanner(file),
 	}
