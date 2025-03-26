@@ -99,7 +99,7 @@ func (c *Client) Run() {
 	err = c.placeBet()
 
 	if err != nil {
-		log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
+		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
 			c.config.ID,
 			err,
 		)
@@ -108,7 +108,8 @@ func (c *Client) Run() {
 
 	c.conn.Close()
 
-	log.Infof("action: send_bet | result: success | client_id: %v",
-		c.config.ID,
+	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
+		c.bet.Document,
+		c.bet.Number,
 	)
 }
