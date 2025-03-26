@@ -2,6 +2,8 @@ import socket
 import logging
 from signal import signal, SIGTERM
 
+from server.common.utils import Bet, store_bets
+
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -46,16 +48,23 @@ class Server:
         client socket will also be closed
         """
         try:
-            # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip().decode('utf-8')
-            addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
+            bet = self.__read_bet()
+            store_bets([bet])
+            logging.info(f'action: apuesta_almacenada | result: success | dni: ${bet.document} | numero: ${bet.number}')
             # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
+            # client_sock.send("{}\n".format(msg).encode('utf-8'))
         except OSError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
+            logging.error(f'action: receive_message | result: fail | error: {e}')
         finally:
             client_sock.close()
+
+    def __read_bet(self) -> Bet:
+        msg = self._client_socket.recv(1024)
+        if not msg:
+            raise OSError('Connection closed')
+        agency = msg[0].decode('utf-8')
+        bet = Bet.decode(agency, msg[1:])
+        return bet
 
     def __accept_new_connection(self):
         """
