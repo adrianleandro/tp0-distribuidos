@@ -55,9 +55,9 @@ class Server:
             client_sock.send(Response.OK.encode())
         except OSError as e:
             logging.error(f'action: apuesta_almacenada | result: fail | error: {e}')
-        # except ValueError as e:
-        #     logging.error(f'action: apuesta_almacenada | result: fail | error: {e}')
-        #     client_sock.send(Response.BAD_REQUEST.encode())
+        except ValueError as e:
+            logging.error(f'action: apuesta_almacenada | result: fail | error: {e}')
+            client_sock.send(Response.BAD_REQUEST.encode())
         finally:
             client_sock.close()
 
