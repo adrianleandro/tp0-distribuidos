@@ -33,12 +33,15 @@ class Bet:
 
         idx = 0
         first_name, idx = read_field(message, idx)
+        logging.info(f'name: {first_name}')
         last_name, idx = read_field(message, idx)
+        logging.info(f'surname: {last_name}')
         document, idx = read_field(message, idx)
+        logging.info(f'doc: {document}')
         birth_date, idx = read_field(message, idx)
+        logging.info(f'date: {birth_date}')
         number, idx = read_field(message, idx)
-        logging.info(f'server |{first_name} {last_name} {document} {birth_date} {number}')
-
+        logging.info(f'num: {number}')
         return Bet(agency, first_name, last_name, document, birth_date, number)
 
 """ Checks whether a bet won the prize or not. """
