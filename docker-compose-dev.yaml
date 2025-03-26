@@ -29,6 +29,7 @@ services:
     - type: bind
       source: ./client/config.yaml
       target: /config.yaml
+    - ./.data:/.data
 networks:
   testing_net:
     ipam:
