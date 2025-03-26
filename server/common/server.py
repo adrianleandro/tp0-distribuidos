@@ -69,7 +69,7 @@ class Server:
             raise ValueError('Bad message')
         agency_length = msg[1]
         agency = msg[2:agency_length]
-        bet = Bet.decode(agency, msg[agency_length:])
+        bet = Bet.decode(agency, msg[2+agency_length:])
         return bet
 
     def __accept_new_connection(self):

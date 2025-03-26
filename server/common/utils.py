@@ -33,15 +33,13 @@ class Bet:
 
         idx = 0
         first_name, idx = read_field(message, idx)
-        logging.info(f'name: {first_name}')
         last_name, idx = read_field(message, idx)
-        logging.info(f'surname: {last_name}')
         document, idx = read_field(message, idx)
-        logging.info(f'doc: {document}')
         birth_date, idx = read_field(message, idx)
-        logging.info(f'date: {birth_date}')
         number, idx = read_field(message, idx)
-        logging.info(f'num: {number}')
+        if not first_name or not last_name or not document or not birth_date or not number:
+            raise ValueError('Missing fields')
+
         return Bet(agency, first_name, last_name, document, birth_date, number)
 
 """ Checks whether a bet won the prize or not. """
