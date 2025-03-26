@@ -62,7 +62,7 @@ class Server:
         msg = client_sock.recv(1024)
         if not msg:
             raise OSError('Connection closed')
-        agency = msg[0].decode('utf-8')
+        agency = chr(msg[0])
         bet = Bet.decode(agency, msg[1:])
         return bet
 
