@@ -68,9 +68,9 @@ class Server:
         if chr(msg[0]) != 'b':
             raise ValueError('Bad message')
         agency_length = msg[1]
-        logging.debug(f'action: read | agency_length: {agency_length}')
+        logging.debug(f'action: read | result: success | agency_length: {agency_length}')
         agency = msg[2:agency_length]
-        logging.debug(f'action: read | agency: {agency}')
+        logging.debug(f'action: read | result: success | agency: {agency}')
         bet = Bet.decode(agency, msg[2+agency_length:])
         return bet
 
