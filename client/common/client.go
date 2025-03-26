@@ -16,24 +16,25 @@ var log = logging.MustGetLogger("log")
 type ClientConfig struct {
 	ID            string
 	ServerAddress string
+	BatchSize     int
 }
 
 // Client Entity that encapsulates how
 type Client struct {
-	config ClientConfig
-	bet    Bet
-	sigc   chan os.Signal
-	exit   bool
-	conn   net.Conn
+	config    ClientConfig
+	betReader *CsvBetReader
+	sigc      chan os.Signal
+	exit      bool
+	conn      net.Conn
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
-func NewClient(config ClientConfig, bet Bet) *Client {
+func NewClient(config ClientConfig) *Client {
 	client := &Client{
-		config: config,
-		sigc:   make(chan os.Signal, 1),
-		bet:    bet,
+		config:    config,
+		sigc:      make(chan os.Signal, 1),
+		betReader: CreateBetReader(config.ID, config.BatchSize),
 	}
 
 	signal.Notify(client.sigc, syscall.SIGTERM)
@@ -72,7 +73,7 @@ func (c *Client) placeBet() error {
 	id := []byte(c.config.ID)
 	idLength := []byte{'b', uint8(len(id))}
 	msg := append(idLength, id...)
-	msg = append(msg, c.bet.Encode()...)
+	//msg = append(msg, c.bet.Encode()...)
 	written, err := c.conn.Write(msg)
 	if err != nil {
 		return err
@@ -106,6 +107,7 @@ func (c *Client) readResponse() (string, error) {
 // Run Send a bet to the server
 func (c *Client) Run() {
 	if c.exit {
+		c.betReader.Close()
 		return
 	}
 
@@ -130,10 +132,10 @@ func (c *Client) Run() {
 		return
 	}
 
-	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
-		c.bet.Document,
-		c.bet.Number,
-	)
+	//log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
+	//	c.bet.Document,
+	//	c.bet.Number,
+	//)
 
 	resp, err := c.readResponse()
 
@@ -150,4 +152,5 @@ func (c *Client) Run() {
 	}
 
 	c.conn.Close()
+	c.betReader.Close()
 }

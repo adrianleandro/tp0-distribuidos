@@ -106,16 +106,9 @@ func main() {
 	clientConfig := common.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
 		ID:            v.GetString("id"),
+		BatchSize:     v.GetInt("batch.maxAmount"),
 	}
 
-	bet := common.Bet{
-		FirstName: v.GetString("NOMBRE"),
-		Surname:   v.GetString("APELLIDO"),
-		Document:  v.GetString("DOCUMENTO"),
-		Birthdate: v.GetString("NACIMIENTO"),
-		Number:    v.GetString("NUMERO"),
-	}
-
-	client := common.NewClient(clientConfig, bet)
+	client := common.NewClient(clientConfig)
 	client.Run()
 }

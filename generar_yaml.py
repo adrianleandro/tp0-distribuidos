@@ -47,7 +47,9 @@ CLIENT_VOLUMES = [{
     'type': 'bind',
     'source': f'./client/{CLIENT_CONFIG}',
     'target': f'/{CLIENT_CONFIG}',
-}]
+},
+    './.data:/.data',
+]
 CLIENT_DEPENDENCIES = [
     'server',
 ]
@@ -83,11 +85,11 @@ for client_number in range(1, n_clients + 1):
         'entrypoint': CLIENT_ENTRYPOINT,
         'environment': [
             f'CLI_ID={client_number}',
-            f'CLI_NOMBRE=Santiago Lionel',
-            f'CLI_APELLIDO=Lorca',
-            f'CLI_DOCUMENTO=30904465',
-            f'CLI_NACIMIENTO=1999-03-17',
-            f'CLI_NUMERO=7574',
+            'CLI_NOMBRE=Santiago Lionel',
+            'CLI_APELLIDO=Lorca',
+            'CLI_DOCUMENTO=30904465',
+            'CLI_NACIMIENTO=1999-03-17',
+            'CLI_NUMERO=7574',
         ],
         'networks': CLIENT_NET,
         'depends_on': CLIENT_DEPENDENCIES,
