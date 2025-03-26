@@ -70,7 +70,7 @@ func (c *Client) createClientSocket() error {
 
 func (c *Client) placeBet() error {
 	id := []byte(c.config.ID)
-	idLength := []byte{'b', byte(len(id))}
+	idLength := []byte{'b', uint8(len(id))}
 	msg := append(idLength, id...)
 	msg = append(msg, c.bet.Encode()...)
 	written, err := c.conn.Write(msg)
