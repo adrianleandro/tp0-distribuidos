@@ -50,7 +50,7 @@ class Server:
         try:
             bet = self.__read_bet(client_sock)
             store_bets([bet])
-            logging.info(f'action: apuesta_almacenada | result: success | dni: ${bet.document} | numero: ${bet.number}')
+            logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
             # TODO: Modify the send to avoid short-writes
             # client_sock.send("{}\n".format(msg).encode('utf-8'))
         except OSError as e:
