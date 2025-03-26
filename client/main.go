@@ -113,4 +113,5 @@ func main() {
 	client := common.NewClient(clientConfig)
 	client.Run()
 	client.Close()
+	time.Sleep(100 * time.Millisecond)
 }
