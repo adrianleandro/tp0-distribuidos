@@ -77,7 +77,9 @@ func (c *Client) placeBets() error {
 	bets, err := c.betReader.Read()
 	msg = append(msg, uint8(len(bets)))
 	for _, bet := range bets {
-		msg = append(msg, bet.Encode()...)
+		encodedBet := bet.Encode()
+		msg = append(msg, uint8(len(encodedBet)))
+		msg = append(msg, encodedBet...)
 	}
 
 	written, err := c.conn.Write(msg)

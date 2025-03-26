@@ -70,11 +70,12 @@ class Server:
             raise ValueError('Bad message')
         agency_length = msg[1]
         agency = msg[2:2+agency_length]
-        offset = 3+agency_length
-        bet_quantity = msg[2+agency_length:offset]
+        bet_quantity = msg[2+agency_length]
+        offset = 2+agency_length+1
         for bet in range(bet_quantity):
-            read, bet = Bet.decode(agency, msg[offset:])
-            offset += read
+            bet_length = msg[offset]
+            bet = Bet.decode(agency, msg[offset:offset+bet_length])
+            offset += bet_length
             bets.append(bet)
         return bets
 

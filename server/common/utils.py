@@ -40,7 +40,7 @@ class Bet:
         if not first_name or not last_name or not document or not birth_date or not number:
             raise ValueError('Missing fields')
 
-        return idx, Bet(agency, first_name, last_name, document, birth_date, number)
+        return Bet(agency, first_name, last_name, document, birth_date, number)
 
 """ Checks whether a bet won the prize or not. """
 def has_won(bet: Bet) -> bool:
