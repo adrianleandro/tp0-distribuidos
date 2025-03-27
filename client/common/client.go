@@ -69,12 +69,28 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-func (c *Client) placeBets() (int, error) {
+func (c *Client) write(msg []byte) error {
+	written, err := c.conn.Write(msg)
+	if err != nil {
+		return err
+	}
+	if written != len(msg) {
+		return fmt.Errorf("partial write")
+	}
+	return nil
+}
+
+func (c *Client) sendBets() (int, error) {
 	id := []byte(c.config.ID)
 	idLength := []byte{'b', uint8(len(id))}
 	msg := append(idLength, id...)
 
 	bets, err := c.betReader.Read()
+
+	if err != nil {
+		return 0, err
+	}
+
 	msg = append(msg, uint8(len(bets)))
 	for _, bet := range bets {
 		encodedBet := bet.Encode()
@@ -82,12 +98,9 @@ func (c *Client) placeBets() (int, error) {
 		msg = append(msg, encodedBet...)
 	}
 
-	written, err := c.conn.Write(msg)
+	err = c.write(msg)
 	if err != nil {
 		return 0, err
-	}
-	if written != len(msg) {
-		return 0, fmt.Errorf("partial write")
 	}
 	return len(bets), nil
 }
@@ -118,32 +131,30 @@ func (c *Client) Close() {
 
 // Run Send a bet to the server
 func (c *Client) Run() {
+	err := c.createClientSocket()
+
+	if err != nil {
+		log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return
+	}
+
 	readBets := 1
 	for readBets > 0 {
 		if c.exit {
-			c.betReader.Close()
-			return
+			break
 		}
 
-		err := c.createClientSocket()
-
-		if err != nil {
-			log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return
-		}
-
-		readBets, err = c.placeBets()
+		readBets, err = c.sendBets()
 
 		if err != nil {
 			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
-			c.conn.Close()
-			return
+			break
 		}
 
 		resp, err := c.readResponse()
@@ -159,7 +170,17 @@ func (c *Client) Run() {
 				resp,
 			)
 		}
-
-		c.conn.Close()
 	}
+
+	_, err = c.sendBets()
+	if err != nil {
+		log.Errorf("action: send_done | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+	} else {
+		log.Infof("action: send_done | result: success")
+	}
+	c.conn.Close()
+	c.betReader.Close()
 }
