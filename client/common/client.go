@@ -143,7 +143,7 @@ func (c *Client) requestWinners() (int, []string, error) {
 	}
 
 	switch message[0] {
-	case 'w':
+	case 0x77:
 		winners, err := decodeWinners(message[1:])
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to decode message: %v", err)
