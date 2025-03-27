@@ -2,7 +2,6 @@ import multiprocessing
 import socket
 import logging
 from signal import signal, SIGTERM
-from sys import exit as sys_exit
 
 from common.response import Response
 from common.utils import Bet, store_bets, encode_winners, load_bets, has_won
@@ -14,8 +13,6 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self.exit_program = False
-        self._clients_lock = multiprocessing.Lock()
-        self._agencies_lock = multiprocessing.Lock()
         self._bets_lock = multiprocessing.Lock()
 
         self.__manager = multiprocessing.Manager()
@@ -94,9 +91,6 @@ class Server:
             client_sock.send(Response.BAD_REQUEST.encode())
         finally:
             client_sock.close()
-            with self._clients_lock:
-                self._client_sockets.remove(client_sock)
-            sys_exit(0)
 
 
     def __read_bets(self, msg) -> (int, list[Bet]):
@@ -105,9 +99,8 @@ class Server:
         agency = msg[1:1 + agency_length]
         bet_quantity = msg[1 + agency_length]
         if bet_quantity > 0:
-            with self._agencies_lock:
-                if agency not in self._agencies:
-                    self._agencies.append(agency)
+            if agency not in self._agencies:
+                self._agencies.append(agency)
             offset = 2 + agency_length
             for bet in range(bet_quantity):
                 bet_length = msg[offset]
@@ -116,9 +109,8 @@ class Server:
                 offset += bet_length
                 bets.append(bet)
         else:
-            with self._agencies_lock:
-                if agency in self._agencies:
-                    self._agencies.remove(agency)
+            if agency in self._agencies:
+                self._agencies.remove(agency)
         return bet_quantity, bets
 
     def __read_winner_request(self, msg) -> str:
