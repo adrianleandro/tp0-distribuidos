@@ -19,6 +19,7 @@ class Server:
 
         self.__manager = multiprocessing.Manager()
         self._agencies = self.__manager.list()
+        self._processes = self.__manager.list()
 
     def signal_exit(self, signum, frame):
         self.exit_program = True
@@ -26,6 +27,8 @@ class Server:
         if self._client_socket:
             self._client_socket.close()
 
+        for p in self._processes:
+            p.terminate()
         self._server_socket.close()
 
     def run(self):
@@ -42,10 +45,13 @@ class Server:
                 client_sock = self.__accept_new_connection()
                 p = multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock,))
                 p.start()
-                p.join()
+                self._processes.append(p)
             except OSError as e:
                 if self.exit_program:
                     logging.info(f'action: close | result: success')
+
+        for p in self._processes:
+            p.join()
 
 
     def __handle_client_connection(self, client_sock):
