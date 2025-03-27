@@ -12,7 +12,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-        self._client_socket = None
+        self._client_sockets = []
         self.exit_program = False
         self._agencies_lock = multiprocessing.Lock()
         self._bets_lock = multiprocessing.Lock()
@@ -23,8 +23,8 @@ class Server:
     def signal_exit(self, signum, frame):
         self.exit_program = True
 
-        if self._client_socket:
-            self._client_socket.close()
+        for client_sock in self._client_sockets:
+            client_sock.close()
 
         self._server_socket.close()
 
@@ -133,5 +133,5 @@ class Server:
         logging.info('action: accept_connections | result: in_progress')
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
-        self._client_socket = c
+        self._client_sockets.append(c)
         return c
