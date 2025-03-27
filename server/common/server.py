@@ -27,8 +27,6 @@ class Server:
         if self._client_socket:
             self._client_socket.close()
 
-        for p in self._processes:
-            p.terminate()
         self._server_socket.close()
 
     def run(self):
