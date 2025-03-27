@@ -3,7 +3,9 @@ import logging
 from signal import signal, SIGTERM
 
 from common.response import Response
-from common.utils import Bet, store_bets
+from common.utils import Bet, store_bets, encode_winners
+
+from server.common.utils import load_bets, has_won
 
 
 class Server:
@@ -13,6 +15,7 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._client_socket = None
+        self._agencies = set()
         self.exit_program = False
 
     def signal_exit(self, signum, frame):
@@ -49,13 +52,30 @@ class Server:
         client socket will also be closed
         """
         try:
-            quantity, bets = self.__read_bets(client_sock)
-            store_bets(bets)
-            if quantity == len(bets):
-                logging.info(f'action: apuesta_recibida | result: success | cantidad: {quantity}')
-            else:
-                logging.error(f'action: apuesta_recibida | result: error | cantidad: {quantity}')
-            client_sock.send(Response.OK.encode())
+            msg = client_sock.recv(8192)
+            if not msg:
+                raise OSError('Connection closed')
+            match chr(msg[0]):
+                case 'b':
+                    quantity, bets = self.__read_bets(msg[1:])
+                    store_bets(bets)
+                    if quantity == len(bets):
+                        logging.info(f'action: apuesta_recibida | result: success | cantidad: {quantity}')
+                    else:
+                        logging.error(f'action: apuesta_recibida | result: error | cantidad: {quantity}')
+                    client_sock.send(Response.OK.encode())
+                case 'w':
+                    agency = self.__read_winner_request(msg[1:])
+                    if len(self._agencies) == 0:
+                        logging.info(f'action: sorteo | result: success')
+                        bets = load_bets()
+                        winners = []
+                        for bet in bets:
+                            if has_won(bet) and bet.is_agency(agency):
+                                winners.append(bet.document)
+                        client_sock.send(encode_winners(winners))
+                case _:
+                    raise ValueError('Bad message')
         except OSError as e:
             logging.error(f'action: apuesta_recibida | result: fail | error: {e}')
         except (ValueError, IndexError) as e:
@@ -64,24 +84,29 @@ class Server:
         finally:
             client_sock.close()
 
-    def __read_bets(self, client_sock) -> (int, list[Bet]):
-        msg = client_sock.recv(8192)
+    def __read_bets(self, msg) -> (int, list[Bet]):
         bets = []
-        if not msg:
-            raise OSError('Connection closed')
-        if chr(msg[0]) != 'b':
-            raise ValueError('Bad message')
-        agency_length = msg[1]
-        agency = msg[2:2 + agency_length]
-        bet_quantity = msg[2 + agency_length]
-        offset = 2 + agency_length + 1
-        for bet in range(bet_quantity):
-            bet_length = msg[offset]
-            offset += 1
-            bet = Bet.decode(agency, msg[offset:offset+bet_length])
-            offset += bet_length
-            bets.append(bet)
+        agency_length = msg[0]
+        agency = msg[1:1 + agency_length]
+        bet_quantity = msg[1 + agency_length]
+        if bet_quantity > 0:
+            self._agencies.add(agency)
+            offset = 2 + agency_length
+            for bet in range(bet_quantity):
+                bet_length = msg[offset]
+                offset += 1
+                bet = Bet.decode(agency, msg[offset:offset + bet_length])
+                offset += bet_length
+                bets.append(bet)
+        else:
+            self._agencies.discard(agency)
         return bet_quantity, bets
+
+    def __read_winner_request(self, msg) -> str:
+        agency_length = msg[0]
+        agency = msg[1:1 + agency_length]
+        return agency
+
 
     def __accept_new_connection(self):
         """

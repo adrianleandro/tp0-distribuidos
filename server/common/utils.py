@@ -24,6 +24,9 @@ class Bet:
         self.birthdate = datetime.date.fromisoformat(birthdate)
         self.number = int(number)
 
+    def is_agency(self, agency):
+        return self.agency == agency
+
     @classmethod
     def decode(cls, agency: str, message: bytes) -> (int, 'Bet'):
         def read_field(msg: bytes, index: int) -> tuple[str, int]:
@@ -66,6 +69,15 @@ def load_bets() -> list[Bet]:
         reader = csv.reader(file, quoting=csv.QUOTE_MINIMAL)
         for row in reader:
             yield Bet(row[0], row[1], row[2], row[3], row[4], row[5])
+
+
+def encode_winners(winners: list[str]) -> bytes:
+    msg = bytes([len(winners)])
+
+    for winner in winners:
+        msg += len(winner).to_bytes(1, 'big')
+        msg += winner.encode('utf-8')
+    return msg
 
 def test_decode():
     message = bytes.fromhex('044A75616E05506572657A093132333435363738390A313939302D30352D3135023432')
