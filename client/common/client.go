@@ -8,15 +8,19 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 var log = logging.MustGetLogger("log")
+
+const BufferSize = 8192
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
 	ID            string
 	ServerAddress string
 	BatchSize     int
+	LoopPeriod    time.Duration
 }
 
 // Client Entity that encapsulates how
@@ -105,6 +109,18 @@ func (c *Client) sendBets() (int, error) {
 	return len(bets), nil
 }
 
+func (c *Client) requestWinner() error {
+	id := []byte(c.config.ID)
+	idLength := []byte{'w', uint8(len(id))}
+	msg := append(idLength, id...)
+
+	err := c.write(msg)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *Client) readResponse() (string, error) {
 	message := make([]byte, 2)
 	_, err := io.ReadFull(c.conn, message)
@@ -125,26 +141,50 @@ func (c *Client) readResponse() (string, error) {
 	}
 }
 
+func (c *Client) requestWinners() (int, []string, error) {
+	message := make([]byte, BufferSize)
+	_, err := io.ReadFull(c.conn, message)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to read message: %v", err)
+	}
+
+	switch message[0] {
+	case 'W':
+		return 0, nil, nil
+	case 'w':
+		winners, err := decodeWinners(message[1:])
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to decode message: %v", err)
+		}
+		return 1, winners, nil
+	default:
+		return 0, nil, fmt.Errorf("unknown response")
+	}
+
+}
+
 func (c *Client) Close() {
 	c.betReader.Close()
 }
 
 // Run Send a bet to the server
 func (c *Client) Run() {
-	err := c.createClientSocket()
-
-	if err != nil {
-		log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-		return
-	}
-
 	readBets := 1
 	for readBets > 0 {
 		if c.exit {
-			break
+			c.conn.Close()
+			c.betReader.Close()
+			return
+		}
+
+		err := c.createClientSocket()
+
+		if err != nil {
+			log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
 		}
 
 		readBets, err = c.sendBets()
@@ -154,7 +194,8 @@ func (c *Client) Run() {
 				c.config.ID,
 				err,
 			)
-			break
+			c.conn.Close()
+			c.betReader.Close()
 		}
 
 		resp, err := c.readResponse()
@@ -172,7 +213,7 @@ func (c *Client) Run() {
 		}
 	}
 
-	_, err = c.sendBets()
+	_, err := c.sendBets()
 	if err != nil {
 		log.Errorf("action: send_done | result: fail | client_id: %v | error: %v",
 			c.config.ID,
@@ -180,6 +221,22 @@ func (c *Client) Run() {
 		)
 	} else {
 		log.Infof("action: send_done | result: success")
+	}
+
+	for {
+		ready, winners, err := c.requestWinners()
+		if err != nil {
+			log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			break
+		}
+		if ready == 1 {
+			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(winners))
+			break
+		}
+		time.Sleep(c.config.LoopPeriod)
 	}
 	c.conn.Close()
 	c.betReader.Close()
