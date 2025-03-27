@@ -76,6 +76,7 @@ class Server:
                         client_sock.send(encode_winners(winners))
                     else:
                         logging.info(f'action: sorteo | result: in_progress')
+                        client_sock.send(bytes('W', encoding='utf-8'))
                 case _:
                     raise ValueError('Bad message')
         except OSError as e:
