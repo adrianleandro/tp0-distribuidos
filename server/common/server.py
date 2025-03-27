@@ -12,13 +12,14 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-        self._client_sockets = []
         self.exit_program = False
+        self._clients_lock = multiprocessing.Lock()
         self._agencies_lock = multiprocessing.Lock()
         self._bets_lock = multiprocessing.Lock()
 
         self.__manager = multiprocessing.Manager()
         self._agencies = self.__manager.list()
+        self._client_sockets = self.__manager.list()
 
     def signal_exit(self, signum, frame):
         self.exit_program = True
@@ -92,6 +93,8 @@ class Server:
             client_sock.send(Response.BAD_REQUEST.encode())
         finally:
             client_sock.close()
+            with self._clients_lock:
+                self._client_sockets.remove(client_sock)
 
     def __read_bets(self, msg) -> (int, list[Bet]):
         bets = []
