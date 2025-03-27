@@ -251,3 +251,8 @@ Una vez que el servidor no tiene apuestas pendientes de ninguna agencia, estas p
 donde N es la cantidad de documentos ganadores.
 
 El cliente será el encargado de decodificarlo, se quedará con una lista de esos ganadores y mostrará la cantidad de los mismos por log.
+
+### Ejercicio 8 (WIP)
+Se agrega la libreria multiprocessing de python y por cada cliente aceptado se genera un proceso que manejará el mensaje recibido.
+
+La única necesidad de sincronización nace cuando se quieren acceder a las apuestas existentes, por lo que para resolver este problema se crea un lock, para que cada proceso pueda acceder a ellas solo si lo posee.
