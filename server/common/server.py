@@ -38,7 +38,9 @@ class Server:
         while not self.exit_program:
             try:
                 client_sock = self.__accept_new_connection()
-                multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock,)).start()
+                p = multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock,))
+                p.start()
+                p.join()
             except OSError as e:
                 if self.exit_program:
                     logging.info(f'action: close | result: success')
