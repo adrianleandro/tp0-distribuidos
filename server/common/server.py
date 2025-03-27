@@ -61,18 +61,19 @@ class Server:
             elif msg_type == 'w':
                 agency = self.__read_winner_request(msg[1:])
                 with self._agencies_lock:
-                    if len(self._agencies) == 0:
-                        logging.info(f'action: sorteo | result: success')
-                        with self._bets_lock:
-                            bets = load_bets()
-                        winners = []
-                        for bet in bets:
-                            if has_won(bet) and bet.is_agency(agency):
-                                winners.append(bet.document)
-                        client_sock.send(encode_winners(winners))
-                    else:
-                        logging.info(f'action: sorteo | result: in_progress')
-                        client_sock.send(bytes('W', encoding='utf-8'))
+                    agencies = len(self._agencies)
+                if agencies == 0:
+                    logging.info(f'action: sorteo | result: success')
+                    with self._bets_lock:
+                        bets = load_bets()
+                    winners = []
+                    for bet in bets:
+                        if has_won(bet) and bet.is_agency(agency):
+                            winners.append(bet.document)
+                    client_sock.send(encode_winners(winners))
+                else:
+                    logging.info(f'action: sorteo | result: in_progress')
+                    client_sock.send(bytes('W', encoding='utf-8'))
             else:
                 raise ValueError('Bad message')
         except OSError as e:
