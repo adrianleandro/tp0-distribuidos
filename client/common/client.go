@@ -13,8 +13,6 @@ import (
 
 var log = logging.MustGetLogger("log")
 
-const BufferSize = 8192
-
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
 	ID            string
@@ -139,8 +137,7 @@ func (c *Client) requestWinners() (int, []string, error) {
 		return 0, nil, err
 	}
 
-	message := make([]byte, BufferSize)
-	_, err = io.ReadFull(c.conn, message)
+	message, err := io.ReadAll(c.conn)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to read message: %v", err)
 	}
