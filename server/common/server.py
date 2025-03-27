@@ -74,6 +74,8 @@ class Server:
                             if has_won(bet) and bet.is_agency(agency):
                                 winners.append(bet.document)
                         client_sock.send(encode_winners(winners))
+                    else:
+                        logging.info(f'action: sorteo | result: in_progress')
                 case _:
                     raise ValueError('Bad message')
         except OSError as e:
