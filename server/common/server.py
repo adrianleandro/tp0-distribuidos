@@ -93,7 +93,7 @@ class Server:
             client_sock.close()
             for socket_element in self._client_sockets:
                 socket_element.close()
-            self._client_sockets.clear()
+            self._client_sockets[:] = []
 
 
     def __read_bets(self, msg) -> (int, list[Bet]):
