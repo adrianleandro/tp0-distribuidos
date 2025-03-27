@@ -1,3 +1,4 @@
+import multiprocessing
 import socket
 import logging
 from signal import signal, SIGTERM
@@ -14,6 +15,8 @@ class Server:
         self._client_socket = None
         self._agencies = set()
         self.exit_program = False
+        self._agencies_lock = multiprocessing.Lock()
+        self._bets_lock = multiprocessing.Lock()
 
     def signal_exit(self, signum, frame):
         self.exit_program = True
@@ -35,7 +38,7 @@ class Server:
         while not self.exit_program:
             try:
                 client_sock = self.__accept_new_connection()
-                self.__handle_client_connection(client_sock)
+                multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock,)).start()
             except OSError as e:
                 if self.exit_program:
                     logging.info(f'action: close | result: success')
@@ -56,7 +59,8 @@ class Server:
             msg_type = chr(msg[0])
             if msg_type == 'b':
                 quantity, bets = self.__read_bets(msg[1:])
-                store_bets(bets)
+                with self._bets_lock:
+                    store_bets(bets)
                 if quantity == len(bets):
                     logging.info(f'action: apuesta_recibida | result: success | cantidad: {quantity}')
                 else:
@@ -66,7 +70,8 @@ class Server:
                 agency = self.__read_winner_request(msg[1:])
                 if len(self._agencies) == 0:
                     logging.info(f'action: sorteo | result: success')
-                    bets = load_bets()
+                    with self._bets_lock:
+                        bets = load_bets()
                     winners = []
                     for bet in bets:
                         if has_won(bet) and bet.is_agency(agency):
@@ -91,7 +96,8 @@ class Server:
         agency = msg[1:1 + agency_length]
         bet_quantity = msg[1 + agency_length]
         if bet_quantity > 0:
-            self._agencies.add(agency)
+            with self._agencies_lock:
+                self._agencies.add(agency)
             offset = 2 + agency_length
             for bet in range(bet_quantity):
                 bet_length = msg[offset]
@@ -100,7 +106,8 @@ class Server:
                 offset += bet_length
                 bets.append(bet)
         else:
-            self._agencies.discard(agency)
+            with self._agencies_lock:
+                self._agencies.discard(agency)
         return bet_quantity, bets
 
     def __read_winner_request(self, msg) -> str:
