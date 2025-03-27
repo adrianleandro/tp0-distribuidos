@@ -12,6 +12,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._server_socket.settimeout(10)
         self.exit_program = False
         self._bets_lock = multiprocessing.Lock()
         self._agencies_lock = multiprocessing.Lock()
