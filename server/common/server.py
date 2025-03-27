@@ -2,6 +2,7 @@ import multiprocessing
 import socket
 import logging
 from signal import signal, SIGTERM
+from sys import exit as sys_exit
 
 from common.response import Response
 from common.utils import Bet, store_bets, encode_winners, load_bets, has_won
@@ -95,6 +96,8 @@ class Server:
             client_sock.close()
             with self._clients_lock:
                 self._client_sockets.remove(client_sock)
+            sys_exit(0)
+
 
     def __read_bets(self, msg) -> (int, list[Bet]):
         bets = []
