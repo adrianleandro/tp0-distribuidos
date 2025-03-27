@@ -29,7 +29,6 @@ class Server:
             try:
                 client_sock = self.__accept_new_connection()
                 p = multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock,))
-                p.daemon = True
                 p.start()
             except OSError as e:
                 if self.exit_program:
