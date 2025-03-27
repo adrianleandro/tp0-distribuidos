@@ -234,3 +234,20 @@ En donde `N` es la cantidad total de apuestas en ese mensaje y `n_1` la cantidad
 Como todas las apuestas provienen de la misma agencia, basta con usar unos bytes al principio para señalar la agencia, en vez de codificarlo para cada apuesta.
 
 En el cliente se agrega la clase `CsvBetReader` con un método `Read()`. Esta clase será la responsable de hacer el batching según los parámetros de configuración pasados con la variable de entorno `batch.maxAmount`. El cliente parseará ese archivo hasta que no queden más apuestas para leer y de esa forma terminará su ejecución.
+
+### Ejercicio 7
+Se introduce un nuevo mensaje en el protocolo: la solicitud de ganador:
+
+| w | cstr_agencia |
+|---|--------------|
+
+El cliente ahora enviará este mensaje al cargar todas sus apuestas. Del lado del servidor, se guarda el ID de las agencias que envian apuestas, y recien se descartan cuando esa agencia les manda un mensaje 'b' con 0 apuestas, para señalizar que ya terminó.
+
+Una vez que el servidor no tiene apuestas pendientes de ninguna agencia, estas pueden hacer la solicitud de los resultados del sorteo. En caso de que todavía haya agencias cargando, envía un mensaje de 1 byte con una 'W' de Wait. Si no hay más, envía un mensaje de winners con los documentos de todos los ganadores, en un mensaje de estructura:
+
+| w | N | cstr_documento1 | cstr_documento2 | ... | cstr_documentoN |
+|---|---|-----------------|-----------------|-----|-----------------|
+
+donde N es la cantidad de documentos ganadores.
+
+El cliente será el encargado de decodificarlo, se quedará con una lista de esos ganadores y mostrará la cantidad de los mismos por log.
