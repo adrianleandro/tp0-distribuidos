@@ -1,12 +1,14 @@
 package common
 
 import (
-	"bufio"
 	"fmt"
-	"net"
-	"time"
-
 	"github.com/op/go-logging"
+	"io"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 var log = logging.MustGetLogger("log")
@@ -15,22 +17,41 @@ var log = logging.MustGetLogger("log")
 type ClientConfig struct {
 	ID            string
 	ServerAddress string
-	LoopAmount    int
+	BatchSize     int
 	LoopPeriod    time.Duration
 }
 
 // Client Entity that encapsulates how
 type Client struct {
-	config ClientConfig
-	conn   net.Conn
+	config    ClientConfig
+	betReader *CsvBetReader
+	sigc      chan os.Signal
+	exit      bool
+	conn      net.Conn
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
-		config: config,
+		config:    config,
+		sigc:      make(chan os.Signal, 1),
+		betReader: CreateBetReader(config.ID, config.BatchSize),
 	}
+
+	signal.Notify(client.sigc, syscall.SIGTERM)
+	go func() {
+		<-client.sigc
+		client.exit = true
+		log.Infof(
+			"action: close | result: in_progress | client_id: %v ",
+			client.config.ID,
+		)
+		if client.conn != nil {
+			client.conn.Close()
+		}
+	}()
+
 	return client
 }
 
@@ -50,40 +71,178 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
+func (c *Client) write(msg []byte) error {
+	written, err := c.conn.Write(msg)
+	if err != nil {
+		return err
+	}
+	if written != len(msg) {
+		return fmt.Errorf("partial write")
+	}
+	return nil
+}
 
-		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
-			"[CLIENT %v] Message N°%v\n",
-			c.config.ID,
-			msgID,
-		)
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
+func (c *Client) sendBets() (int, error) {
+	id := []byte(c.config.ID)
+	idLength := []byte{'b', uint8(len(id))}
+	msg := append(idLength, id...)
+
+	bets, err := c.betReader.Read()
+
+	if err != nil {
+		return 0, err
+	}
+
+	msg = append(msg, uint8(len(bets)))
+	for _, bet := range bets {
+		encodedBet := bet.Encode()
+		msg = append(msg, uint8(len(encodedBet)))
+		msg = append(msg, encodedBet...)
+	}
+
+	err = c.write(msg)
+	if err != nil {
+		return 0, err
+	}
+	return len(bets), nil
+}
+
+func (c *Client) readResponse() (string, error) {
+	message := make([]byte, 2)
+	_, err := io.ReadFull(c.conn, message)
+	if err != nil {
+		return "", fmt.Errorf("failed to read message: %v", err)
+	}
+	if message[0] != 'a' {
+		return "", fmt.Errorf("invalid response type: %x", message[0])
+	}
+
+	switch message[1] {
+	case 0:
+		return "ok", nil
+	case 1:
+		return "bad_request", nil
+	default:
+		return fmt.Sprintf("unknown response"), nil
+	}
+}
+
+func (c *Client) requestWinners() (int, []string, error) {
+	id := []byte(c.config.ID)
+	idLength := []byte{'w', uint8(len(id))}
+	msg := append(idLength, id...)
+
+	err := c.write(msg)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	message, err := io.ReadAll(c.conn)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to read message: %v", err)
+	}
+
+	switch message[0] {
+	case 0x77:
+		winners, err := decodeWinners(message[1:])
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to decode message: %v", err)
+		}
+		return 1, winners, nil
+	default:
+		return 0, nil, nil
+	}
+
+}
+
+func (c *Client) Close() {
+	c.betReader.Close()
+}
+
+// Run Send a bet to the server
+func (c *Client) Run() {
+	readBets := 1
+	for readBets > 0 {
+		if c.exit {
+			c.conn.Close()
+			c.betReader.Close()
+			return
+		}
+
+		err := c.createClientSocket()
 
 		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
 			return
 		}
 
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-			c.config.ID,
-			msg,
-		)
+		readBets, err = c.sendBets()
 
-		// Wait a time between sending one message and the next one
-		time.Sleep(c.config.LoopPeriod)
+		if err != nil {
+			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			c.conn.Close()
+			c.betReader.Close()
+		}
 
+		resp, err := c.readResponse()
+
+		if err != nil {
+			log.Errorf("action: response | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+		} else {
+			log.Infof("action: response | result: success | client_id: %v | response: %v",
+				c.config.ID,
+				resp,
+			)
+		}
 	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+	c.betReader.Close()
+
+	_, err := c.sendBets()
+	if err != nil {
+		log.Errorf("action: send_done | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+	} else {
+		log.Infof("action: send_done | result: success")
+	}
+
+	for {
+		err := c.createClientSocket()
+
+		if err != nil {
+			log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+
+		ready, winners, err := c.requestWinners()
+		if err != nil {
+			log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			break
+		}
+		if ready == 1 {
+			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(winners))
+			c.conn.Close()
+			return
+		}
+
+		c.conn.Close()
+		time.Sleep(c.config.LoopPeriod)
+	}
+	c.conn.Close()
 }

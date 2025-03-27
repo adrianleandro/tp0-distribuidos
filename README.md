@@ -178,3 +178,81 @@ Se espera que se redacte una sección del README en donde se indique cómo ejecu
 Se proveen [pruebas automáticas](https://github.com/7574-sistemas-distribuidos/tp0-tests) de caja negra. Se exige que la resolución de los ejercicios pase tales pruebas, o en su defecto que las discrepancias sean justificadas y discutidas con los docentes antes del día de la entrega. El incumplimiento de las pruebas es condición de desaprobación, pero su cumplimiento no es suficiente para la aprobación. Respetar las entradas de log planteadas en los ejercicios, pues son las que se chequean en cada uno de los tests.
 
 La corrección personal tendrá en cuenta la calidad del código entregado y casos de error posibles, se manifiesten o no durante la ejecución del trabajo práctico. Se pide a los alumnos leer atentamente y **tener en cuenta** los criterios de corrección informados  [en el campus](https://campusgrado.fi.uba.ar/mod/page/view.php?id=73393).
+
+## Solución
+
+### Ejercicio 1
+Se provee el script `generar-compose.sh`, el cual llama a un subscript implementado en Python. El mismo recibe los mismos parámetros que el script principal y en el mismo orden, y en caso de que falte alguno, se mostrará por pantalla el uso correcto para invocarlo.
+
+El script es invocado con el comando `bash generar-compose.sh [dest YAML file] [number of clients]` donde `[dest YAML file]` es el nombre del archivo que se creará o sobreescribirá con la definición de Docker Compose y el parámetro `[number of clients]` la cantidad de clientes creados.
+
+### Ejercicio 2
+Para este ejercicio, se agregó en el subscript `generar_yaml.sh` la opción de hacer un `bind mount` al container, para inyectarle los archivos de configuración y no tener que reconstruirlos al construir la imagen. Se agrega en cada aplicación un archivo `.dockerignore` cuya función es hacer que se ignoren dichos archivos de configuración al hacer COPY en los `Dockerfile`.
+
+Se puede probar la persistencia de los mismos al entrar en el entrypoint de alguna de las aplicaciones y agregando una variable de entorno.
+
+### Ejercicio 3
+Se provee un nuevo script `validar-echo-server.sh` en el cual se levanta temporalmente un contenedor que se conecta a la misma red en la que se encuentra el servidor, y usa el comando `netcat` para enviar una request al mismo, usando un mensaje cualquiera, y comparando que sea el mismo en la salida. En caso de éxito, se loguea el resultado **success**, y si el mensaje que llega del servidor no es el mismo, envia **fail** como resultado.
+
+Para usar el mismo basta con ejecutar el comando `sh validar-echo-server.sh`.
+
+### Ejercicio 4
+Se modifican tanto cliente como servidor para hacer un *graceful shutdown* al recibir la señal de `SIGTERM`. Para probarlos basta con enviarle una de esas señales a cualquiera de las dos aplicaciones durante su ejecución.
+
+### Ejercicio 5
+Se crea un protocolo binario para la transmisión de apuestas. Todos los datos se asumen de tipo string, las cuales se codifican de la siguiente manera:
+
+| N | byte1 | byte2 | ... | byte N |
+|---|-------|-------|-----|--------|
+
+El mensaje de una apuesta debe contener la letra b minúscula en su inicio, seguida de 6 strings codificadas (las llamaremos cstr en el diagrama), debe quedar entonces de la forma:
+
+| b | cstr_agencia | cstr_nombre | cstr_apellido | cstr_documento | cstr_fecha_nacimiento | cstr_numero |
+|---|--------------|-------------|---------------|----------------|-----------------------|-------------|
+
+El mensaje de respuesta del servidor es más sencillo al contar con solo 2 bytes. El primero es una a minúscula, para marcar el tipo de mensaje, y el segundo el código de respuesta, que es un número entero.
+
+| a | codigo_respuesta |
+|---|------------------|
+
+Los códigos de respuesta actuales son:
+- 0: La request fue procesada con éxito
+- 1: La request es inválida
+
+Para codificar una apuesta se provee el método `Encode()` en el archivo `bet.go` del lado del cliente, mientras que para decodificarla el servidor posee el método `Bet.decode(message)` el cual devuelve un objeto `Bet`.
+
+Para las respuestas, se provee la clase `Response` en el servidor.
+
+### Ejercicio 6
+Se modifica el protocolo para incluir batching. A partir de ahora los mensajes de bets tendrán la forma:
+
+| b | cstr_agencia | N | n_1 | cstr_nombre_1 | cstr_apellido_1 | cstr_documento_1 | cstr_fecha_nacimiento_1 | cstr_numero_1 | n_2 | cstr_nombre_2 | cstr_apellido_2 | cstr_documento_2 | cstr_fecha_nacimiento_2 | cstr_numero_2 | ... | n_N | cstr_nombre_N | cstr_apellido_N | cstr_documento_N | cstr_fecha_nacimiento_N | cstr_numero_N |
+|---|--------------|---|-----|---------------|-----------------|------------------|-------------------------|---------------|-----|---------------|-----------------|------------------|-------------------------|---------------|-----|-----|---------------|-----------------|------------------|-------------------------|---------------|
+
+En donde `N` es la cantidad total de apuestas en ese mensaje y `n_1` la cantidad de bytes correspondientes a cada apuesta. El resto del protocolo se mantiene igual, con las strings codificadas como en la sección anterior.
+
+Como todas las apuestas provienen de la misma agencia, basta con usar unos bytes al principio para señalar la agencia, en vez de codificarlo para cada apuesta.
+
+En el cliente se agrega la clase `CsvBetReader` con un método `Read()`. Esta clase será la responsable de hacer el batching según los parámetros de configuración pasados con la variable de entorno `batch.maxAmount`. El cliente parseará ese archivo hasta que no queden más apuestas para leer y de esa forma terminará su ejecución.
+
+### Ejercicio 7
+Se introduce un nuevo mensaje en el protocolo: la solicitud de ganador:
+
+| w | cstr_agencia |
+|---|--------------|
+
+El cliente ahora enviará este mensaje al cargar todas sus apuestas. Del lado del servidor, se guarda el ID de las agencias que envian apuestas, y recien se descartan cuando esa agencia les manda un mensaje 'b' con 0 apuestas, para señalizar que ya terminó.
+
+Una vez que el servidor no tiene apuestas pendientes de ninguna agencia, estas pueden hacer la solicitud de los resultados del sorteo. En caso de que todavía haya agencias cargando, envía un mensaje de 1 byte con una 'W' de Wait. Si no hay más, envía un mensaje de winners con los documentos de todos los ganadores, en un mensaje de estructura:
+
+| w | N | cstr_documento1 | cstr_documento2 | ... | cstr_documentoN |
+|---|---|-----------------|-----------------|-----|-----------------|
+
+donde N es la cantidad de documentos ganadores.
+
+El cliente será el encargado de decodificarlo, se quedará con una lista de esos ganadores y mostrará la cantidad de los mismos por log.
+
+### Ejercicio 8 (WIP)
+Se agrega la libreria multiprocessing de python y por cada cliente aceptado se genera un proceso que manejará el mensaje recibido.
+
+La única necesidad de sincronización nace cuando se quieren acceder a las apuestas existentes, por lo que para resolver este problema se crea un lock, para que cada proceso pueda acceder a ellas solo si lo posee.
