@@ -204,6 +204,7 @@ func (c *Client) Run() {
 			)
 		}
 	}
+	c.betReader.Close()
 
 	_, err := c.sendBets()
 	if err != nil {
@@ -236,12 +237,12 @@ func (c *Client) Run() {
 		}
 		if ready == 1 {
 			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(winners))
-			break
+			c.conn.Close()
+			return
 		}
 
 		c.conn.Close()
 		time.Sleep(c.config.LoopPeriod)
 	}
 	c.conn.Close()
-	c.betReader.Close()
 }
