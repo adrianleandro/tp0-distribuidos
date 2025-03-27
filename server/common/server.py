@@ -55,30 +55,30 @@ class Server:
             msg = client_sock.recv(8192)
             if not msg:
                 raise OSError('Connection closed')
-            match chr(msg[0]):
-                case 'b':
-                    quantity, bets = self.__read_bets(msg[1:])
-                    store_bets(bets)
-                    if quantity == len(bets):
-                        logging.info(f'action: apuesta_recibida | result: success | cantidad: {quantity}')
-                    else:
-                        logging.error(f'action: apuesta_recibida | result: error | cantidad: {quantity}')
-                    client_sock.send(Response.OK.encode())
-                case 'w':
-                    agency = self.__read_winner_request(msg[1:])
-                    if len(self._agencies) == 0:
-                        logging.info(f'action: sorteo | result: success')
-                        bets = load_bets()
-                        winners = []
-                        for bet in bets:
-                            if has_won(bet) and bet.is_agency(agency):
-                                winners.append(bet.document)
-                        client_sock.send(encode_winners(winners))
-                    else:
-                        logging.info(f'action: sorteo | result: in_progress')
-                        client_sock.send(bytes('W', encoding='utf-8'))
-                case _:
-                    raise ValueError('Bad message')
+
+            if msg[0] == 'b':
+                quantity, bets = self.__read_bets(msg[1:])
+                store_bets(bets)
+                if quantity == len(bets):
+                    logging.info(f'action: apuesta_recibida | result: success | cantidad: {quantity}')
+                else:
+                    logging.error(f'action: apuesta_recibida | result: error | cantidad: {quantity}')
+                client_sock.send(Response.OK.encode())
+            elif msg[0] == 'w':
+                agency = self.__read_winner_request(msg[1:])
+                if len(self._agencies) == 0:
+                    logging.info(f'action: sorteo | result: success')
+                    bets = load_bets()
+                    winners = []
+                    for bet in bets:
+                        if has_won(bet) and bet.is_agency(agency):
+                            winners.append(bet.document)
+                    client_sock.send(encode_winners(winners))
+                else:
+                    logging.info(f'action: sorteo | result: in_progress')
+                    client_sock.send(bytes('W', encoding='utf-8'))
+            else:
+                raise ValueError('Bad message')
         except OSError as e:
             logging.error(f'action: apuesta_recibida | result: fail | error: {e}')
         except (ValueError, IndexError) as e:
