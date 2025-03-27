@@ -141,11 +141,11 @@ func (c *Client) requestWinners() (int, []string, error) {
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to read message: %v", err)
 	}
-	log.Infof("got response: %s", message)
-	switch message[0] {
-	case 'W':
+
+	switch string(message[0]) {
+	case "W":
 		return 0, nil, nil
-	case 'w':
+	case "w":
 		winners, err := decodeWinners(message[1:])
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to decode message: %v", err)
