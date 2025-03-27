@@ -13,7 +13,6 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._client_socket = None
-        # self._agencies = set()
         self.exit_program = False
         self._agencies_lock = multiprocessing.Lock()
         self._bets_lock = multiprocessing.Lock()
@@ -102,7 +101,8 @@ class Server:
         bet_quantity = msg[1 + agency_length]
         if bet_quantity > 0:
             with self._agencies_lock:
-                self._agencies.add(agency)
+                if agency not in self._agencies:
+                    self._agencies.append(agency)
             offset = 2 + agency_length
             for bet in range(bet_quantity):
                 bet_length = msg[offset]
@@ -112,7 +112,8 @@ class Server:
                 bets.append(bet)
         else:
             with self._agencies_lock:
-                self._agencies.discard(agency)
+                if agency in self._agencies:
+                    self._agencies.remove(agency)
         return bet_quantity, bets
 
     def __read_winner_request(self, msg) -> str:
