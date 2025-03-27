@@ -19,7 +19,7 @@ class Server:
         self._bets_lock = multiprocessing.Lock()
 
         self.__manager = multiprocessing.Manager()
-        self._agencies = self.__manager.set()
+        self._agencies = self.__manager.list()
 
     def signal_exit(self, signum, frame):
         self.exit_program = True
