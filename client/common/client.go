@@ -221,6 +221,16 @@ func (c *Client) Run() {
 	}
 
 	for {
+		err := c.createClientSocket()
+
+		if err != nil {
+			log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+
 		ready, winners, err := c.requestWinners()
 		if err != nil {
 			log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: %v",
@@ -233,6 +243,8 @@ func (c *Client) Run() {
 			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(winners))
 			break
 		}
+
+		c.conn.Close()
 		time.Sleep(c.config.LoopPeriod)
 	}
 	c.conn.Close()
