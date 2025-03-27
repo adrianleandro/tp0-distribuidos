@@ -25,7 +25,7 @@ class Bet:
         self.number = int(number)
 
     def is_agency(self, agency):
-        return self.agency == agency
+        return self.agency == int(agency)
 
     @classmethod
     def decode(cls, agency: str, message: bytes) -> (int, 'Bet'):
