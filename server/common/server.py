@@ -14,32 +14,22 @@ class Server:
         self._server_socket.listen(listen_backlog)
         self.exit_program = False
         self._bets_lock = multiprocessing.Lock()
+        self._agencies_lock = multiprocessing.Lock()
 
         self.__manager = multiprocessing.Manager()
         self._agencies = self.__manager.list()
-        self._client_sockets = self.__manager.list()
 
     def signal_exit(self, signum, frame):
         self.exit_program = True
-
-        for client_sock in self._client_sockets:
-            client_sock.close()
-
         self._server_socket.close()
 
     def run(self):
-        """
-        Dummy Server loop
-
-        Server that accept a new connections and establishes a
-        communication with a client. After client with communucation
-        finishes, servers starts to accept new connections again
-        """
         signal(SIGTERM, self.signal_exit)
         while not self.exit_program:
             try:
                 client_sock = self.__accept_new_connection()
                 p = multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock,))
+                p.daemon = True
                 p.start()
             except OSError as e:
                 if self.exit_program:
@@ -70,18 +60,19 @@ class Server:
                 client_sock.send(Response.OK.encode())
             elif msg_type == 'w':
                 agency = self.__read_winner_request(msg[1:])
-                if len(self._agencies) == 0:
-                    logging.info(f'action: sorteo | result: success')
-                    with self._bets_lock:
-                        bets = load_bets()
-                    winners = []
-                    for bet in bets:
-                        if has_won(bet) and bet.is_agency(agency):
-                            winners.append(bet.document)
-                    client_sock.send(encode_winners(winners))
-                else:
-                    logging.info(f'action: sorteo | result: in_progress')
-                    client_sock.send(bytes('W', encoding='utf-8'))
+                with self._agencies_lock:
+                    if len(self._agencies) == 0:
+                        logging.info(f'action: sorteo | result: success')
+                        with self._bets_lock:
+                            bets = load_bets()
+                        winners = []
+                        for bet in bets:
+                            if has_won(bet) and bet.is_agency(agency):
+                                winners.append(bet.document)
+                        client_sock.send(encode_winners(winners))
+                    else:
+                        logging.info(f'action: sorteo | result: in_progress')
+                        client_sock.send(bytes('W', encoding='utf-8'))
             else:
                 raise ValueError('Bad message')
         except OSError as e:
@@ -91,9 +82,6 @@ class Server:
             client_sock.send(Response.BAD_REQUEST.encode())
         finally:
             client_sock.close()
-            for socket_element in self._client_sockets:
-                socket_element.close()
-            self._client_sockets[:] = []
 
 
     def __read_bets(self, msg) -> (int, list[Bet]):
@@ -101,19 +89,20 @@ class Server:
         agency_length = msg[0]
         agency = msg[1:1 + agency_length]
         bet_quantity = msg[1 + agency_length]
-        if bet_quantity > 0:
-            if agency not in self._agencies:
-                self._agencies.append(agency)
-            offset = 2 + agency_length
-            for bet in range(bet_quantity):
-                bet_length = msg[offset]
-                offset += 1
-                bet = Bet.decode(agency, msg[offset:offset + bet_length])
-                offset += bet_length
-                bets.append(bet)
-        else:
-            if agency in self._agencies:
-                self._agencies.remove(agency)
+        with self._agencies_lock:
+            if bet_quantity > 0:
+                if agency not in self._agencies:
+                    self._agencies.append(agency)
+                offset = 2 + agency_length
+                for bet in range(bet_quantity):
+                    bet_length = msg[offset]
+                    offset += 1
+                    bet = Bet.decode(agency, msg[offset:offset + bet_length])
+                    offset += bet_length
+                    bets.append(bet)
+            else:
+                if agency in self._agencies:
+                    self._agencies.remove(agency)
         return bet_quantity, bets
 
     def __read_winner_request(self, msg) -> str:
@@ -134,5 +123,4 @@ class Server:
         logging.info('action: accept_connections | result: in_progress')
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
-        self._client_sockets.append(c)
         return c
