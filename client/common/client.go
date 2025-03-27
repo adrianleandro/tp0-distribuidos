@@ -70,25 +70,51 @@ func (c *Client) createClientSocket() error {
 }
 
 func (c *Client) placeBets() error {
-	id := []byte(c.config.ID)
-	idLength := []byte{'b', uint8(len(id))}
-	msg := append(idLength, id...)
+	for {
+		id := []byte(c.config.ID)
+		idLength := []byte{'b', uint8(len(id))}
+		msg := append(idLength, id...)
 
-	bets, err := c.betReader.Read()
-	msg = append(msg, uint8(len(bets)))
-	for _, bet := range bets {
-		encodedBet := bet.Encode()
-		msg = append(msg, uint8(len(encodedBet)))
-		msg = append(msg, encodedBet...)
+		bets, err := c.betReader.Read()
+		if err != nil {
+			return fmt.Errorf("error reading bets: %v", err)
+		}
+
+		if len(bets) == 0 {
+			break
+		}
+
+		msg = append(msg, uint8(len(bets)))
+		for _, bet := range bets {
+			encodedBet := bet.Encode()
+			msg = append(msg, uint8(len(encodedBet)))
+			msg = append(msg, encodedBet...)
+		}
+
+		written, err := c.conn.Write(msg)
+		if err != nil {
+			return fmt.Errorf("error writing to connection: %v", err)
+		}
+		if written != len(msg) {
+			return fmt.Errorf("partial write")
+		}
+
+		// Read and log response
+		resp, err := c.readResponse()
+		if err != nil {
+			log.Errorf("action: response | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return err
+		}
+
+		log.Infof("action: response | result: success | client_id: %v | response: %v",
+			c.config.ID,
+			resp,
+		)
 	}
 
-	written, err := c.conn.Write(msg)
-	if err != nil {
-		return err
-	}
-	if written != len(msg) {
-		return fmt.Errorf("partial write")
-	}
 	return nil
 }
 
