@@ -69,53 +69,27 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-func (c *Client) placeBets() error {
-	for {
-		id := []byte(c.config.ID)
-		idLength := []byte{'b', uint8(len(id))}
-		msg := append(idLength, id...)
+func (c *Client) placeBets() (int, error) {
+	id := []byte(c.config.ID)
+	idLength := []byte{'b', uint8(len(id))}
+	msg := append(idLength, id...)
 
-		bets, err := c.betReader.Read()
-		if err != nil {
-			return fmt.Errorf("error reading bets: %v", err)
-		}
-
-		if len(bets) == 0 {
-			break
-		}
-
-		msg = append(msg, uint8(len(bets)))
-		for _, bet := range bets {
-			encodedBet := bet.Encode()
-			msg = append(msg, uint8(len(encodedBet)))
-			msg = append(msg, encodedBet...)
-		}
-
-		written, err := c.conn.Write(msg)
-		if err != nil {
-			return fmt.Errorf("error writing to connection: %v", err)
-		}
-		if written != len(msg) {
-			return fmt.Errorf("partial write")
-		}
-
-		// Read and log response
-		resp, err := c.readResponse()
-		if err != nil {
-			log.Errorf("action: response | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return err
-		}
-
-		log.Infof("action: response | result: success | client_id: %v | response: %v",
-			c.config.ID,
-			resp,
-		)
+	bets, err := c.betReader.Read()
+	msg = append(msg, uint8(len(bets)))
+	for _, bet := range bets {
+		encodedBet := bet.Encode()
+		msg = append(msg, uint8(len(encodedBet)))
+		msg = append(msg, encodedBet...)
 	}
 
-	return nil
+	written, err := c.conn.Write(msg)
+	if err != nil {
+		return 0, err
+	}
+	if written != len(msg) {
+		return 0, fmt.Errorf("partial write")
+	}
+	return len(bets), nil
 }
 
 func (c *Client) readResponse() (string, error) {
@@ -144,50 +118,48 @@ func (c *Client) Close() {
 
 // Run Send a bet to the server
 func (c *Client) Run() {
-	if c.exit {
-		c.betReader.Close()
-		return
-	}
+	readBets := 1
+	for readBets > 0 {
+		if c.exit {
+			c.betReader.Close()
+			return
+		}
 
-	err := c.createClientSocket()
+		err := c.createClientSocket()
 
-	if err != nil {
-		log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-		return
-	}
+		if err != nil {
+			log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
 
-	err = c.placeBets()
+		readBets, err = c.placeBets()
 
-	if err != nil {
-		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
+		if err != nil {
+			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			c.conn.Close()
+			return
+		}
+
+		resp, err := c.readResponse()
+
+		if err != nil {
+			log.Errorf("action: response | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+		} else {
+			log.Infof("action: response | result: success | client_id: %v | response: %v",
+				c.config.ID,
+				resp,
+			)
+		}
+
 		c.conn.Close()
-		return
 	}
-
-	//log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
-	//	c.bet.Document,
-	//	c.bet.Number,
-	//)
-
-	resp, err := c.readResponse()
-
-	if err != nil {
-		log.Errorf("action: response | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-	} else {
-		log.Infof("action: response | result: success | client_id: %v | response: %v",
-			c.config.ID,
-			resp,
-		)
-	}
-
-	c.conn.Close()
 }
