@@ -109,18 +109,6 @@ func (c *Client) sendBets() (int, error) {
 	return len(bets), nil
 }
 
-func (c *Client) requestWinner() error {
-	id := []byte(c.config.ID)
-	idLength := []byte{'w', uint8(len(id))}
-	msg := append(idLength, id...)
-
-	err := c.write(msg)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *Client) readResponse() (string, error) {
 	message := make([]byte, 2)
 	_, err := io.ReadFull(c.conn, message)
@@ -142,8 +130,17 @@ func (c *Client) readResponse() (string, error) {
 }
 
 func (c *Client) requestWinners() (int, []string, error) {
+	id := []byte(c.config.ID)
+	idLength := []byte{'w', uint8(len(id))}
+	msg := append(idLength, id...)
+
+	err := c.write(msg)
+	if err != nil {
+		return 0, nil, err
+	}
+
 	message := make([]byte, BufferSize)
-	_, err := io.ReadFull(c.conn, message)
+	_, err = io.ReadFull(c.conn, message)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to read message: %v", err)
 	}
