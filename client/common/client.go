@@ -141,7 +141,7 @@ func (c *Client) requestWinners() (int, []string, error) {
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to read message: %v", err)
 	}
-
+	log.Infof("got response: %s", message)
 	switch message[0] {
 	case 'W':
 		return 0, nil, nil
