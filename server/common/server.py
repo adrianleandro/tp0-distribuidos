@@ -13,10 +13,13 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._client_socket = None
-        self._agencies = set()
+        # self._agencies = set()
         self.exit_program = False
         self._agencies_lock = multiprocessing.Lock()
         self._bets_lock = multiprocessing.Lock()
+
+        self.__manager = multiprocessing.Manager()
+        self._agencies = self.__manager.set()
 
     def signal_exit(self, signum, frame):
         self.exit_program = True
