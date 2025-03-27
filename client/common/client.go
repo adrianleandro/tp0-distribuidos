@@ -141,10 +141,8 @@ func (c *Client) requestWinners() (int, []string, error) {
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to read message: %v", err)
 	}
-	log.Infof("got response: %v", message[0])
+
 	switch message[0] {
-	case 'W':
-		return 0, nil, nil
 	case 'w':
 		winners, err := decodeWinners(message[1:])
 		if err != nil {
@@ -152,7 +150,7 @@ func (c *Client) requestWinners() (int, []string, error) {
 		}
 		return 1, winners, nil
 	default:
-		return 0, nil, fmt.Errorf("unknown response")
+		return 0, nil, nil
 	}
 
 }
