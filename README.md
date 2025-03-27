@@ -222,3 +222,15 @@ Los códigos de respuesta actuales son:
 Para codificar una apuesta se provee el método `Encode()` en el archivo `bet.go` del lado del cliente, mientras que para decodificarla el servidor posee el método `Bet.decode(message)` el cual devuelve un objeto `Bet`.
 
 Para las respuestas, se provee la clase `Response` en el servidor.
+
+### Ejercicio 6
+Se modifica el protocolo para incluir batching. A partir de ahora los mensajes de bets tendrán la forma:
+
+| b | cstr_agencia | N | n_1 | cstr_nombre_1 | cstr_apellido_1 | cstr_documento_1 | cstr_fecha_nacimiento_1 | cstr_numero_1 | n_2 | cstr_nombre_2 | cstr_apellido_2 | cstr_documento_2 | cstr_fecha_nacimiento_2 | cstr_numero_2 | ... | n_N | cstr_nombre_N | cstr_apellido_N | cstr_documento_N | cstr_fecha_nacimiento_N | cstr_numero_N |
+|---|--------------|---|-----|---------------|-----------------|------------------|-------------------------|---------------|-----|---------------|-----------------|------------------|-------------------------|---------------|-----|-----|---------------|-----------------|------------------|-------------------------|---------------|
+
+En donde `N` es la cantidad total de apuestas en ese mensaje y `n_1` la cantidad de bytes correspondientes a cada apuesta. El resto del protocolo se mantiene igual, con las strings codificadas como en la sección anterior.
+
+Como todas las apuestas provienen de la misma agencia, basta con usar unos bytes al principio para señalar la agencia, en vez de codificarlo para cada apuesta.
+
+En el cliente se agrega la clase `CsvBetReader` con un método `Read()`. Esta clase será la responsable de hacer el batching según los parámetros de configuración pasados con la variable de entorno `batch.maxAmount`. El cliente parseará ese archivo hasta que no queden más apuestas para leer y de esa forma terminará su ejecución.
