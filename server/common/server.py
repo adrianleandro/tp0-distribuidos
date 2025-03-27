@@ -3,10 +3,7 @@ import logging
 from signal import signal, SIGTERM
 
 from common.response import Response
-from common.utils import Bet, store_bets, encode_winners
-
-from server.common.utils import load_bets, has_won
-
+from common.utils import Bet, store_bets, encode_winners, load_bets, has_won
 
 class Server:
     def __init__(self, port, listen_backlog):
