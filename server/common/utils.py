@@ -72,7 +72,7 @@ def load_bets() -> list[Bet]:
 
 
 def encode_winners(winners: list[str]) -> bytes:
-    msg = bytes(['w', len(winners)])
+    msg = bytes([0x77, len(winners)])
 
     for winner in winners:
         msg += len(winner).to_bytes(1, 'big')
