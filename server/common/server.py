@@ -53,7 +53,8 @@ class Server:
             if not msg:
                 raise OSError('Connection closed')
 
-            if msg[0] == 'b':
+            msg_type = chr(msg[0])
+            if msg_type == 'b':
                 quantity, bets = self.__read_bets(msg[1:])
                 store_bets(bets)
                 if quantity == len(bets):
@@ -61,7 +62,7 @@ class Server:
                 else:
                     logging.error(f'action: apuesta_recibida | result: error | cantidad: {quantity}')
                 client_sock.send(Response.OK.encode())
-            elif msg[0] == 'w':
+            elif msg_type == 'w':
                 agency = self.__read_winner_request(msg[1:])
                 if len(self._agencies) == 0:
                     logging.info(f'action: sorteo | result: success')
@@ -77,9 +78,9 @@ class Server:
             else:
                 raise ValueError('Bad message')
         except OSError as e:
-            logging.error(f'action: apuesta_recibida | result: fail | error: {e}')
+            logging.error(f'action: mensaje_recibido | result: fail | error: {e}')
         except (ValueError, IndexError) as e:
-            logging.error(f'action: apuesta_recibida | result: fail | error: {e}')
+            logging.error(f'action: mensaje_recibido | result: fail | error: {e}')
             client_sock.send(Response.BAD_REQUEST.encode())
         finally:
             client_sock.close()
