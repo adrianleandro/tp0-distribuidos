@@ -91,6 +91,7 @@ class Server:
             client_sock.send(Response.BAD_REQUEST.encode())
         finally:
             client_sock.close()
+            self._client_sockets.remove(client_sock)
 
 
     def __read_bets(self, msg) -> (int, list[Bet]):
