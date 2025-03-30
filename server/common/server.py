@@ -14,25 +14,34 @@ class Server:
         self._server_socket.listen(listen_backlog)
         self.exit_program = False
         self._bets_lock = multiprocessing.Lock()
-        self._agencies_lock = multiprocessing.Lock()
+        self._processes = []
 
         self.__manager = multiprocessing.Manager()
         self._agencies = self.__manager.list()
 
+        signal(SIGTERM, self.signal_exit)
+
     def signal_exit(self, signum, frame):
         self.exit_program = True
         self._server_socket.close()
+        for p in self._processes:
+            p.terminate()
 
     def run(self):
-        signal(SIGTERM, self.signal_exit)
         while not self.exit_program:
             try:
                 client_sock = self.__accept_new_connection()
                 p = multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock,))
                 p.start()
+                self._processes.append(p)
+                self._processes = [p for p in self._processes if p.is_alive()]
+                client_sock.close()
             except OSError as e:
                 if self.exit_program:
                     logging.info(f'action: close | result: success')
+
+        for p in self._processes:
+            p.join(timeout=0.5)
 
 
     def __handle_client_connection(self, client_sock):
@@ -45,6 +54,7 @@ class Server:
         try:
             msg = client_sock.recv(8192)
             if not msg:
+                client_sock.close()
                 raise OSError('Connection closed')
 
             msg_type = chr(msg[0])
@@ -59,8 +69,7 @@ class Server:
                 client_sock.send(Response.OK.encode())
             elif msg_type == 'w':
                 agency = self.__read_winner_request(msg[1:])
-                with self._agencies_lock:
-                    agencies = len(self._agencies)
+                agencies = len(self._agencies)
                 if agencies == 0:
                     logging.info(f'action: sorteo | result: success')
                     with self._bets_lock:
@@ -83,26 +92,24 @@ class Server:
         finally:
             client_sock.close()
 
-
     def __read_bets(self, msg) -> (int, list[Bet]):
         bets = []
         agency_length = msg[0]
         agency = msg[1:1 + agency_length]
         bet_quantity = msg[1 + agency_length]
-        with self._agencies_lock:
-            if bet_quantity > 0:
-                if agency not in self._agencies:
-                    self._agencies.append(agency)
-                offset = 2 + agency_length
-                for bet in range(bet_quantity):
-                    bet_length = msg[offset]
-                    offset += 1
-                    bet = Bet.decode(agency, msg[offset:offset + bet_length])
-                    offset += bet_length
-                    bets.append(bet)
-            else:
-                if agency in self._agencies:
-                    self._agencies.remove(agency)
+        if bet_quantity > 0:
+            if agency not in self._agencies:
+                self._agencies.append(agency)
+            offset = 2 + agency_length
+            for bet in range(bet_quantity):
+                bet_length = msg[offset]
+                offset += 1
+                bet = Bet.decode(agency, msg[offset:offset + bet_length])
+                offset += bet_length
+                bets.append(bet)
+        else:
+            if agency in self._agencies:
+                self._agencies.remove(agency)
         return bet_quantity, bets
 
     def __read_winner_request(self, msg) -> str:
