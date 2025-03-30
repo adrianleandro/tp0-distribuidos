@@ -72,12 +72,13 @@ func (c *Client) createClientSocket() error {
 }
 
 func (c *Client) write(msg []byte) error {
-	written, err := c.conn.Write(msg)
-	if err != nil {
-		return err
-	}
-	if written != len(msg) {
-		return fmt.Errorf("partial write")
+	totalWritten := 0
+	for totalWritten < len(msg) {
+		written, err := c.conn.Write(msg[totalWritten:])
+		if err != nil {
+			return fmt.Errorf("error escribiendo en el socket: %w", err)
+		}
+		totalWritten += written
 	}
 	return nil
 }
