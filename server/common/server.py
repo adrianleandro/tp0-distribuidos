@@ -25,7 +25,7 @@ class Server:
         self.exit_program = True
         self._server_socket.close()
         for p in self._processes:
-            p.terminate()
+            p.join(timeout=0.5)
 
     def run(self):
         while not self.exit_program:
@@ -34,14 +34,10 @@ class Server:
                 p = multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock,))
                 p.start()
                 self._processes.append(p)
-                self._processes = [p for p in self._processes if p.is_alive()]
                 client_sock.close()
             except OSError as e:
                 if self.exit_program:
                     logging.info(f'action: close | result: success')
-
-        for p in self._processes:
-            p.join(timeout=0.5)
 
 
     def __handle_client_connection(self, client_sock):
